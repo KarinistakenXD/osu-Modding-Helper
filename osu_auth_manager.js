@@ -39,6 +39,7 @@ const WORKER_PROXY_URL = 'https://osu-proxy.ameliar-online.workers.dev/';
     // rotates the refresh token on every use, so two simultaneous refreshes
     // would race and one would fail on an already-spent token.
     let refreshInFlight = null;
+    let sessionEpoch = 0;
 
     // ---- small storage helpers -------------------------------------------------
 
@@ -97,13 +98,15 @@ const WORKER_PROXY_URL = 'https://osu-proxy.ameliar-online.workers.dev/';
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(20000)
         });
 
         if (!response.ok) {
             const errBody = await response.text().catch(() => '');
             const err = new Error(`osu-proxy token exchange failed (${response.status}): ${errBody}`);
             err.status = response.status;
+            try { err.oauthError = JSON.parse(errBody).error; } catch {}
             throw err;
         }
 
@@ -112,6 +115,7 @@ const WORKER_PROXY_URL = 'https://osu-proxy.ameliar-online.workers.dev/';
 
     // Normalizes a raw /oauth/token response into what we persist.
     function toStoredShape(tokenResponse, fallbackRefreshToken) {
+        if (!tokenResponse.access_token || !Number.isFinite(Number(tokenResponse.expires_in)) || Number(tokenResponse.expires_in) <= 0) throw new Error('Invalid token response');
         return {
             accessToken: tokenResponse.access_token,
             // osu! returns a fresh refresh_token on every grant; keep the
@@ -133,6 +137,7 @@ const WORKER_PROXY_URL = 'https://osu-proxy.ameliar-online.workers.dev/';
      * in the settings UI) rather than automatically in the background.
      */
     async function startAuthFlow() {
+        const epoch = ++sessionEpoch;
         const redirectUri = getRedirectUri();
         const state = crypto.randomUUID();
 
@@ -145,6 +150,8 @@ const WORKER_PROXY_URL = 'https://osu-proxy.ameliar-online.workers.dev/';
 
         const redirectedTo = await launchWebAuthFlow(authorizeUrl.toString());
         const resultUrl = new URL(redirectedTo);
+        const expectedUrl = new URL(redirectUri);
+        if (resultUrl.origin !== expectedUrl.origin || resultUrl.pathname !== expectedUrl.pathname) throw new Error('Unexpected OAuth redirect');
 
         const returnedState = resultUrl.searchParams.get('state');
         if (returnedState !== state) {
@@ -168,6 +175,7 @@ const WORKER_PROXY_URL = 'https://osu-proxy.ameliar-online.workers.dev/';
         });
 
         const stored = toStoredShape(tokenResponse);
+        if (epoch !== sessionEpoch) throw new Error('Authentication cancelled');
         await saveToken(stored);
         return stored;
     }
@@ -183,6 +191,7 @@ const WORKER_PROXY_URL = 'https://osu-proxy.ameliar-online.workers.dev/';
     async function refreshAccessToken() {
         if (refreshInFlight) return refreshInFlight;
 
+        const epoch = sessionEpoch;
         refreshInFlight = (async () => {
             const existing = await getStoredToken();
             if (!existing || !existing.refreshToken) throw new Error('not_authenticated');
@@ -194,13 +203,12 @@ const WORKER_PROXY_URL = 'https://osu-proxy.ameliar-online.workers.dev/';
                 });
 
                 const stored = toStoredShape(tokenResponse, existing.refreshToken);
+                if (epoch !== sessionEpoch) throw new Error('Authentication cancelled');
                 await saveToken(stored);
                 return stored;
             } catch (err) {
-                // A failed refresh usually means the refresh token was
-                // revoked or expired. Clear it so the next call fails fast
-                // with 'not_authenticated' instead of retrying a dead token.
-                await clearToken();
+                // Preserve the session for network/server errors.
+                if (err.oauthError === 'invalid_grant' && epoch === sessionEpoch) await clearToken();
                 throw err;
             }
         })();
@@ -245,6 +253,7 @@ const WORKER_PROXY_URL = 'https://osu-proxy.ameliar-online.workers.dev/';
 
     /** Wipes the stored token pair (a "Disconnect osu! account" action). */
     async function disconnect() {
+        sessionEpoch++;
         await clearToken();
     }
 

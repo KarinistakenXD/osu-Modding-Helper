@@ -1,255 +1,125 @@
-function handleImagePaste() {
-    if (window.uploaderGlobalAttached) return;
-    window.uploaderGlobalAttached = true;
-
-    // 1. ADDED 'true' to use the capture phase. This intercepts the paste BEFORE React swallows it!
-    document.addEventListener('paste', (e) => {
-        if (window.imagePasteEnabled === false || !isModHelperFeatureEnabled('imageUploader')) return;
-        
-        // 2. USE .closest() instead of .matches() so we can find the box even if the cursor is deep inside a Slate.js <span>
-        const discussionBox = e.target.closest('.beatmap-discussion-new__message-area, .beatmap-discussion-post__message--editor, [data-slate-editor="true"]');
-        if (!discussionBox) return;
-
-        const clipboardData = e.clipboardData;
-        if (!clipboardData) return;
-        
-        // 3. osu! screenshot link (Smart formatting with Regex to catch both http and https)
-        const pastedText = clipboardData.getData('text');
-        if (pastedText && pastedText.includes('osu.ppy.sh/ss/')) {
-            const words = pastedText.trim().split(/\s+/);
-            const isOnlyLinks = words.length > 0 && words.every(word => /^https?:\/\/osu\.ppy\.sh\/ss\//i.test(word));
-            
-            if (isOnlyLinks) {
-                e.preventDefault();
-                e.stopPropagation(); // Stop osu! from pasting the raw text
-                words.forEach(link => {
-                    insertSmartMarkdown(discussionBox, `![](${link})`);
-                });
-                return;
-            }
-        }
-
-        // 4. actual image files
-        if (clipboardData.items) {
-            let hasImages = false;
-            for (const item of clipboardData.items) {
-                if (item.type.indexOf('image') !== -1) {
-                    hasImages = true;
-                    uploadImageFile(discussionBox, item.getAsFile());
-                }
-            }
-            if (hasImages) {
-                e.preventDefault();
-                e.stopPropagation(); // Stop React from doing its own weird image handling
-            }
-        }
-    }, true); // <-- CAPTURE PHASE FLAG
-
-    // Also upgrade drag and drop to use capture phase
-    ['dragenter', 'dragover'].forEach(eventName => {
-        document.addEventListener(eventName, (e) => {
-            if (window.imagePasteEnabled === false || !isModHelperFeatureEnabled('imageUploader')) return;
-            e.preventDefault();
-            e.stopPropagation();
-        }, true);
-    });
-
-    document.addEventListener('drop', (e) => {
-        if (window.imagePasteEnabled === false || !isModHelperFeatureEnabled('imageUploader')) return;
-        
-        const isReviews = window.location.href.includes('reviews');
-        const targetBox = e.target.closest('.beatmap-discussion-new__message-area, .beatmap-discussion-post__message--editor, [data-slate-editor="true"]');
-        
-        if (isReviews && !targetBox) {
-            console.log("Please select a discussion box to drop images in the reviews section.");
-            return;
-        }
-
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const discussionBox = targetBox ? targetBox : document.querySelector('.beatmap-discussion-new__message-area');
-        if (!discussionBox) return;
-
-        const files = Array.from(e.dataTransfer.files || []);
-        files.forEach(file => uploadImageFile(discussionBox, file));
-    }, true);
-}
-
-function insertSmartMarkdown(discussionBox, linkText) {
-    if (discussionBox.tagName.toLowerCase() !== 'textarea') {
-        discussionBox.focus();
-        document.execCommand('insertText', false, linkText + ' ');
-        return;
-    }
-
-    const textBefore = discussionBox.value.slice(0, discussionBox.selectionStart);
-    const lines = textBefore.split('\n');
-    const currentLine = lines[lines.length - 1];
-    
-    const imagesOnLine = (currentLine.match(/!\[.*?\]/g) || []).length;
-    
-    let prefix = '';
-    if (imagesOnLine > 0) {
-        if (imagesOnLine % 4 === 0) {
-            prefix = '\n';
-        } else {
-            prefix = ' ';
-        }
-    }
-    
-    const finalInsert = prefix + linkText;
-    const start = discussionBox.selectionStart;
-    const end = discussionBox.selectionEnd;
-    
-    discussionBox.value = discussionBox.value.slice(0, start) + finalInsert + discussionBox.value.slice(end);
-    discussionBox.dispatchEvent(new Event('input', { bubbles: true }));
-    
-    const cursor = start + finalInsert.length;
-    discussionBox.setSelectionRange(cursor, cursor);
-    discussionBox.focus();
-}
-
-function uploadImageFile(discussionBox, file) {
-    if (!file) return;
-    const isImage = file.type.startsWith('image/');
-    const placeholder = isImage ? '![Uploading to s-ul...]' : '[Uploading file to s-ul...]';
-    const isTextArea = discussionBox.tagName.toLowerCase() === 'textarea';
-    
-    if (isTextArea) {
-        insertSmartMarkdown(discussionBox, placeholder);
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        chrome.runtime.sendMessage({
-            action: 'uploadImage',
-            imageData: event.target.result,
-            fileName: file.name,
-            fileType: file.type
-        }, (response) => {
-            if (response && response.url) {
-                const uploadedText = isImage ? `![](${response.url})` : `[${file.name}](${response.url})`;
-                if (isTextArea) {
-                    discussionBox.value = discussionBox.value.replace(placeholder, uploadedText);
-                    discussionBox.dispatchEvent(new Event('input', { bubbles: true }));
-                } else {
-                    discussionBox.focus();
-                    document.execCommand('insertText', false, uploadedText + ' ');
-                }
-            } else {
-                if (isTextArea) {
-                    discussionBox.value = discussionBox.value.replace(placeholder, '');
-                    discussionBox.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-                
-                const errorMsg = response && response.error ? response.error : 'Upload failed.';
-                if (errorMsg === 'missing_api_key') {
-                    showMissingKeyToast();
-                } else {
-                    showErrorToast(errorMsg);
-                }
-            }
-        });
-    };
-    reader.readAsDataURL(file);
-}
-
-function insertText(discussionBox, text) {
-    if (discussionBox.tagName.toLowerCase() !== 'textarea') {
-        discussionBox.focus();
-        document.execCommand('insertText', false, text);
-        return;
-    }
-    const start = discussionBox.selectionStart;
-    const end = discussionBox.selectionEnd;
-    discussionBox.value = discussionBox.value.slice(0, start) + text + discussionBox.value.slice(end);
-    discussionBox.dispatchEvent(new Event('input', { bubbles: true }));
-}
-
-function showMissingKeyToast() {
-    if (document.getElementById('kmh-auth-toast')) return;
-
-    const toast = document.createElement('div');
-    toast.id = 'kmh-auth-toast';
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 25px;
-        right: 25px;
-        background: #1c242e;
-        border-left: 4px solid #ff6666;
-        color: #fff;
-        padding: 16px 20px;
-        border-radius: 6px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.5);
-        z-index: 10000;
-        font-family: Torus, Inter, sans-serif;
-        font-size: 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        opacity: 0;
-        transform: translateY(10px);
-        transition: all 0.3s ease;
-    `;
-    
-    toast.innerHTML = `
-        <div style="font-weight: bold; color: #ff6666;">
-            <i class="fas fa-key" style="margin-right: 5px;"></i> Modding Helper
-        </div>
-        <div style="color: #a39eb5; font-size: 13px;">
-            Image upload failed! You need to add your <strong>s-ul.eu API key</strong>.<br>
-            Click the <strong>Gear icon</strong> <i class="fas fa-cog"></i> below the discussion box to configure it.
-        </div>
-    `;
-    
-    document.body.appendChild(toast);
-
-    requestAnimationFrame(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateY(0)';
-    });
-
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(10px)';
-        setTimeout(() => toast.remove(), 300);
-    }, 6000);
-}
-
-function showErrorToast(message) {
-    const existing = document.getElementById('mod-helper-toast');
-    if (existing) existing.remove();
-
-    const toast = document.createElement('div');
-    toast.id = 'mod-helper-toast';
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 25px;
-        right: 25px;
-        background: #ff6666;
-        color: white;
-        padding: 12px 24px;
-        border-radius: 4px;
-        font-weight: bold;
-        font-size: 14px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        z-index: 10000;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    `;
-    toast.textContent = `Modding Helper: ${message}`;
-    document.body.appendChild(toast);
-
-    requestAnimationFrame(() => {
-        toast.style.opacity = '1';
-    });
-
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-    }, 3500);
-}
-
-// Ensures the listeners are hooked up instantly when the script is loaded
-handleImagePaste();
+/* Reliable image/link paste and drag-and-drop for native osu! discussion editors.
+   Text URLs are converted ONLY when they are recognizable direct image/screenshot links.
+   Actual image files require user-configured s-ul.eu; no OAuth is required for this. */
+(() => {
+ 'use strict';
+ let hasKey=false;
+ chrome.storage.local.get(['sulApiKey'], d=>{hasKey=!!d.sulApiKey?.trim();});
+ chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes.sulApiKey)hasKey=!!changes.sulApiKey.newValue?.trim();});
+ const allowedArea='.beatmap-discussion-new, .beatmap-discussion-post--new-reply, .beatmap-discussion-post__message--editor, .beatmap-discussion-post--reply, .beatmap-discussion--review, .beatmap-discussion-review';
+ const editable='textarea, [contenteditable="true"]';
+ const imageExt=/\.(png|jpe?g|gif|webp|avif|bmp)(?:\?.*)?$/i;
+ function inside(){return /^\/beatmapsets\/\d+\/discussion(?:\/|$)/.test(location.pathname);}
+ function findField(target){
+   if(!(target instanceof Element))return null;
+   const area=target.closest(allowedArea);if(!area)return null;
+   const direct=target.closest(editable);
+   if(direct && area.contains(direct))return direct;
+   const fields=[...area.querySelectorAll(editable)].filter(el=>el.isConnected && el.getClientRects().length);
+   // A drag/drop into a wrapper selects the nearest visible editor; don't choose an unrelated editor.
+   return fields.length===1?fields[0]:null;
+ }
+ function nativeInsert(field,text){
+   field.focus();
+   if(field instanceof HTMLTextAreaElement||field instanceof HTMLInputElement){
+     const start=field.selectionStart??field.value.length, end=field.selectionEnd??start;
+     const newValue=field.value.slice(0,start)+text+field.value.slice(end);
+     const prototype=field instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;
+     Object.getOwnPropertyDescriptor(prototype,'value').set.call(field,newValue);
+     field.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText',data:text}));
+     field.setSelectionRange(start+text.length,start+text.length);
+     return true;
+   }
+   if(field.isContentEditable){
+     // Invoke native insertText so React-based editors receive their own beforeinput/input sequence.
+     return document.execCommand('insertText',false,text);
+   }
+   return false;
+ }
+ function replacePlaceholder(field,token,replacement){
+   if(!(field instanceof HTMLTextAreaElement))return nativeInsert(field,replacement);
+   const pos=field.value.indexOf(token);
+   if(pos<0)return false; // User may have removed the placeholder while uploading.
+   const updated=field.value.slice(0,pos)+replacement+field.value.slice(pos+token.length);
+   Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(field,updated);
+   field.dispatchEvent(new Event('input',{bubbles:true}));
+   return true;
+ }
+ function isImageLink(raw){
+   let u;try{u=new URL(raw);}catch{return false;}
+   if(!['https:','http:'].includes(u.protocol)||u.username||u.password)return false;
+   if(imageExt.test(u.pathname+u.search))return true;
+   if(u.hostname==='osu.ppy.sh'&&/^\/ss\/\d+(?:\/[a-zA-Z0-9]+)?\/?$/.test(u.pathname))return true;
+   // This host serves extensionless image URLs; if not an image the preview will fall back to a link.
+   if(/(^|\.)s-ul\.eu$/i.test(u.hostname)&&u.pathname!=='/'&& !/\.(pdf|zip|osz|txt|mp4|webm)$/i.test(u.pathname))return true;
+   return false;
+ }
+ function toast(message,action){
+   document.getElementById('kmh-upload-status-toast')?.remove();
+   const el=document.createElement('div');el.id='kmh-upload-status-toast';el.setAttribute('role','status');
+   const span=document.createElement('span');span.textContent=message;el.append(span);
+   if(action){const button=document.createElement('button');button.type='button';button.textContent='Open settings';button.onclick=()=>{el.remove();const opener=document.querySelector('[data-kmh-open-settings]')||document.querySelector('.kmh-entry-main');opener?.click();document.querySelector('[data-settings-tab="integrations"]')?.click();};el.append(button);}
+   document.body.append(el);setTimeout(()=>el.remove(),7000);
+ }
+ function upload(field,file){
+   if(!file||!file.type.startsWith('image/'))return;
+   if(!hasKey){toast('Image upload requires your s-ul.eu API key.',true);return;}
+   if(file.size>20*1024*1024){toast('Image is larger than 20 MB. Compress it before uploading.');return;}
+   const token=`[uploading:${crypto.randomUUID()}]`;
+   const canReplace=field instanceof HTMLTextAreaElement;
+   if(canReplace)nativeInsert(field,token);
+   toast('Uploading image to s-ul.eu…');
+   const reader=new FileReader();
+   reader.onerror=()=>{if(canReplace)replacePlaceholder(field,token,'');toast('Could not read the image file.');};
+   reader.onload=()=>{
+     try{
+       chrome.runtime.sendMessage({action:'uploadImage',imageData:reader.result,fileName:file.name||'clipboard.png',fileType:file.type}, response=>{
+         if(chrome.runtime.lastError||!response?.url){
+           if(canReplace)replacePlaceholder(field,token,'');
+           toast('Image upload failed: '+(response?.error||chrome.runtime.lastError?.message||'unknown error'),true);
+           return;
+         }
+         const name=(file.name||'Image').replace(/[\[\]\r\n]/g,'');
+         const markdown=`![${name}](${response.url})`;
+         if(canReplace)replacePlaceholder(field,token,markdown);else nativeInsert(field,markdown);
+         document.dispatchEvent(new CustomEvent('kmh-image-uploaded',{detail:{url:response.url}}));
+         document.querySelector('.kmh-linked-preview')?.removeAttribute('hidden');
+         toast('Image uploaded and inserted into the discussion.');
+       });
+     }catch(error){if(canReplace)replacePlaceholder(field,token,'');toast('Upload failed: '+error.message);}
+   };
+   reader.readAsDataURL(file);
+ }
+ document.addEventListener('paste',e=>{
+   if(!inside())return;
+   const field=findField(e.target);
+   if(!field)return;
+   const cb=e.clipboardData;if(!cb)return;
+   const files=[...(cb.items||[])].filter(x=>x.kind==='file'&&x.type.startsWith('image/')).map(x=>x.getAsFile()).filter(Boolean);
+   if(files.length){
+     if(!isModHelperFeatureEnabled('imageUploader')||window.imagePasteEnabled===false)return;
+     e.preventDefault();e.stopPropagation();files.forEach(file=>upload(field,file));
+     return;
+   }
+   const text=cb.getData('text/plain').trim();
+   // Only convert a standalone pasted URL. Never rewrite embedded Markdown or entire paragraphs.
+   if(text.length>0&&text.length<2400&&!/\s/.test(text)&&isImageLink(text)){
+     e.preventDefault();e.stopPropagation();
+     nativeInsert(field,`![](${text})`);
+   }
+ },true);
+ document.addEventListener('dragover',e=>{
+   if(!inside()||!findField(e.target))return;
+   if([...e.dataTransfer?.types||[]].includes('Files')&&isModHelperFeatureEnabled('imageUploader')){
+     e.preventDefault();e.dataTransfer.dropEffect='copy';
+   }
+ },true);
+ document.addEventListener('drop',e=>{
+   if(!inside()||!isModHelperFeatureEnabled('imageUploader'))return;
+   const field=findField(e.target);if(!field)return;
+   const files=[...(e.dataTransfer?.files||[])].filter(x=>x.type.startsWith('image/'));
+   if(!files.length)return;
+   e.preventDefault();e.stopPropagation();files.forEach(f=>upload(field,f));
+ },true);
+ window.KmhPasteUpload={findField,isImageLink,nativeInsert};
+})();

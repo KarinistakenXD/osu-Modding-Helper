@@ -22,21 +22,21 @@ async function injectMetadataBox() {
     const metaBlock = document.createElement('div');
     metaBlock.className = 'custom-metadata-block';
     
-    metaBlock.style.cssText = 'display: flex; width: calc(100%); min-height: 78px; background: hsl(var(--hsl-b5)); border-radius: 6px; margin-bottom: 15px; padding: 0 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.2); overflow: hidden;';
+
 
     const spinner = '<i class="fas fa-spinner fa-spin"></i>';
 
     // Inject the box with everything set to a spinner initially, AND disabled copy buttons!
     metaBlock.innerHTML = `
-        <div style="display: flex; flex: 1 1 auto; width: 100%; margin-bottom: 10px; background: hsl(var(--hsl-b4));">
-            <div style="flex: 0 0 380px; width: 380px; padding: 12px 20px; display: flex; flex-direction: column; justify-content: center; gap: 6px;">
-                <div class="custom-metadata-line"><strong>Source:</strong> <code class="custom-tags-code" id="custom-source-loader">${spinner}</code><button type="button" class="btn-osu-big custom-copy-button custom-copy-button--source btn-osu-big--disabled" id="copy-source-genre" title="Copy source and genre" aria-label="Copy source and genre" disabled><span class="btn-osu-big__content"><span class="btn-osu-big__left"><span class="btn-osu-big__text-top">Copy</span></span><span class="btn-osu-big__icon"><span class="fa fa-fw"><span class="fas fa-copy"></span></span></span></span></button></div>
-                <div class="custom-metadata-line"><strong>Genre:</strong> <code class="custom-tags-code" id="custom-genre-loader">${spinner}</code><span class="custom-metadata-separator">/</span><code class="custom-tags-code" id="custom-language-loader">${spinner}</code></div>
+        <div class="kmh-metadata-layout">
+            <div class="kmh-metadata-details">
+                <div class="custom-metadata-line"><strong>Source:</strong> <code class="custom-tags-code kmh-source-value" id="custom-source-loader">${spinner}</code><button type="button" class="kmh-metadata-copy custom-copy-button custom-copy-button--source btn-osu-big--disabled" id="copy-source-genre" title="Copy source and genre" aria-label="Copy source and genre" disabled><span class="kmh-copy-label">Copy</span><i class="fas fa-copy" aria-hidden="true"></i></button></div>
+                <div class="custom-metadata-line"><strong>Genre:</strong> <code class="custom-tags-code kmh-genre-value" id="custom-genre-loader">${spinner}</code><span class="custom-metadata-separator">/</span><code class="custom-tags-code kmh-genre-value" id="custom-language-loader">${spinner}</code><span class="kmh-meta-status" role="status"></span></div>
             </div>
 
-            <div style="flex: 1; padding: 12px 20px; display: flex; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 8px; width: 100%; font-size: 13px; line-height: 1.5; color: #ccc; word-wrap: break-word;">
-                    <div style="flex: 1;"><strong style="color: #fff;">Tags:</strong> <code class="custom-tags-code" id="custom-tags-loader">${spinner}</code></div><button type="button" class="btn-osu-big custom-copy-button btn-osu-big--disabled" id="copy-tags" title="Copy tags" aria-label="Copy tags" disabled><span class="btn-osu-big__content"><span class="btn-osu-big__left"><span class="btn-osu-big__text-top">Copy</span></span><span class="btn-osu-big__icon"><span class="fa fa-fw"><span class="fas fa-copy"></span></span></span></span></button>
+            <div class="kmh-metadata-tags">
+                <div class="kmh-tags-content">
+                    <div class="kmh-tags-line"><strong>Tags:</strong> <code class="custom-tags-code kmh-tags-value" id="custom-tags-loader">${spinner}</code></div><button type="button" class="kmh-metadata-copy custom-copy-button btn-osu-big--disabled" id="copy-tags" title="Copy tags" aria-label="Copy tags" disabled><span class="kmh-copy-label">Copy</span><i class="fas fa-copy" aria-hidden="true"></i></button>
                 </div>
             </div>
         </div>
@@ -44,8 +44,17 @@ async function injectMetadataBox() {
 
     filterToolbar.parentNode.insertBefore(metaBlock, filterToolbar);
 
-    // This function unlocks the UI only when authentication passes
-    function unlockMetadataUI(genre, lang) {
+    async function copyMeta(text, trigger) {
+        const label = trigger.querySelector('.kmh-copy-label');
+        try {
+            await navigator.clipboard.writeText(text);
+            if (label) label.textContent = 'Copied';
+            setTimeout(() => { if (label?.isConnected) label.textContent = 'Copy'; }, 1200);
+        } catch { if (label) label.textContent = 'Failed'; }
+    }
+
+    // Render metadata immediately from the public beatmapset JSON, then supplement via API.
+    function unlockMetadataUI(genre, lang, complete = true) {
         const sourceSpan = metaBlock.querySelector('#custom-source-loader');
         const tagsSpan = metaBlock.querySelector('#custom-tags-loader');
         const genreSpan = metaBlock.querySelector('#custom-genre-loader');
@@ -59,12 +68,11 @@ async function injectMetadataBox() {
         // Unlock the Left Copy Button
         const leftCopyBtn = metaBlock.querySelector('#copy-source-genre');
         if (leftCopyBtn) {
-            leftCopyBtn.disabled = false;
-            leftCopyBtn.classList.remove('btn-osu-big--disabled');
+            leftCopyBtn.disabled = !complete;
+            leftCopyBtn.classList.toggle('btn-osu-big--disabled', !complete);
             leftCopyBtn.onclick = () => {
                 const payload = `Source: ${source}\nGenre: ${genre}\nLanguage:${lang || 'none'}`;
-                navigator.clipboard.writeText(payload);
-                console.log('Copied source, genre, and language.');
+                copyMeta(payload, leftCopyBtn);
             };
         }
 
@@ -74,8 +82,7 @@ async function injectMetadataBox() {
             rightCopyBtn.disabled = false;
             rightCopyBtn.classList.remove('btn-osu-big--disabled');
             rightCopyBtn.onclick = () => {
-                navigator.clipboard.writeText(`\`\`\`${tags}\`\`\``);
-                console.log('Copied tags.');
+                copyMeta(tags, rightCopyBtn);
             };
         }
 
@@ -84,38 +91,61 @@ async function injectMetadataBox() {
     }
 
     // --- API V2 FETCH ---
-    if (window.customMapCache && window.customMapCache.id === setId) {
+    const genreFromPage = mapData.genre?.name;
+    const langFromPage = mapData.language?.name;
+    const statusEl = metaBlock.querySelector('.kmh-meta-status');
+    function clearStatus() { if (statusEl) statusEl.replaceChildren(); }
+    function showAction(message, label, handler, retry = false) {
+        if (!statusEl) return;
+        statusEl.replaceChildren();
+        const text = document.createElement('span'); text.textContent = message;
+        const btn = document.createElement('button');btn.type='button';
+        btn.className = retry ? 'kmh-metadata-retry' : 'kmh-metadata-connect';
+        btn.textContent = label;btn.addEventListener('click',handler);
+        statusEl.append(text, document.createTextNode(' '), btn);
+    }
+    function connectAccount() {
+        const opener = metaBlock.querySelector('.kmh-metadata-connect');
+        if (typeof toggleModHelperSettings === 'function') {
+            const modal = document.getElementById('mod-helper-settings-modal');
+            if (!modal) toggleModHelperSettings(opener);
+            document.querySelector('#mod-helper-settings-modal [data-settings-tab="integrations"]')?.click();
+            document.getElementById('mod-helper-osu-connect')?.focus();
+        }
+    }
+    const fallbackReady = !!genreFromPage && !!langFromPage;
+    unlockMetadataUI(genreFromPage || '—', langFromPage || '—', fallbackReady);
+    if (window.customMapCache?.id === setId) {
         unlockMetadataUI(window.customMapCache.genre, window.customMapCache.language);
         return;
     }
-
-    function requestBeatmapData(retries = 3) {
-        chrome.runtime.sendMessage({ action: 'fetchBeatmap', setId: setId }, (response) => {
-            if (chrome.runtime.lastError || (response && response.error === 'not_authenticated')) {
-                if (retries > 0) {
-                    setTimeout(() => requestBeatmapData(retries - 1), 300);
-                    return;
-                }
-                
-                if (response && response.error === 'not_authenticated') {
-                    showAuthWarningToast();
-                }
-                return; 
-            }
-
-            if (response && response.data) {
-                const genre = response.data.genre ? response.data.genre.name : 'Unknown';
-                const language = response.data.language ? response.data.language.name : 'Unknown';
-                
+    function loadMetadata() {
+        if (!metaBlock.isConnected) return;
+        clearStatus();
+        if (!fallbackReady) statusEl.textContent = 'Fetching…';
+        try { chrome.runtime.sendMessage({ action: 'fetchBeatmap', setId }, response => {
+            if (!metaBlock.isConnected) return;
+            const error = chrome.runtime.lastError?.message || response?.error;
+            if (!error && response?.data) {
+                const genre = response.data.genre?.name || genreFromPage || 'Unknown';
+                const language = response.data.language?.name || langFromPage || 'Unknown';
                 window.customMapCache = { id: setId, genre, language };
-                unlockMetadataUI(genre, language);
-            } else {
-                unlockMetadataUI('Error', 'Error');
+                unlockMetadataUI(genre, language, true);
+                clearStatus();
+                return;
             }
-        });
+            if (fallbackReady) { clearStatus(); return; }
+            chrome.runtime.sendMessage({ action: 'getAuthStatus' }, authResponse => {
+                if (!metaBlock.isConnected) return;
+                const connected = !!authResponse?.data?.connected;
+                if (!connected) showAction('Genre/language require a connected osu! account.', 'Connect osu! ↗', connectAccount);
+                else showAction('Metadata unavailable from osu! API.', 'Retry ↻', loadMetadata, true);
+            });
+        }); } catch {
+            if (!fallbackReady) showAction('API request could not start.', 'Retry ↻', loadMetadata, true);
+        }
     }
-
-    requestBeatmapData();
+    loadMetadata();
 }
 
 function showAuthWarningToast() {
@@ -203,19 +233,29 @@ function updateSelectedBeatmapStats() {
     }
 
     const hpDrain = Number(targetMap.drain);
-    const accuracy = Number(targetMap.accuracy);
-    const statValue = value => Number.isFinite(value) ? value.toFixed(2).replace(/\.00$/, '') : '-';
-    const bar = (className, value, maximum) => {
-        const fill = Number.isFinite(value) ? Math.max(0, Math.min(100, value / maximum * 100)) : 0;
-        return `<td class="beatmap-stats-table__bar"><div class="bar bar--beatmap-stats ${className}" style="--fill: ${fill}%;"><div class="bar__fill"></div></div></td>`;
+    const od = Number(targetMap.accuracy);
+    const display = value => Number.isFinite(value) ? value.toFixed(2).replace(/\.00$/, '') : '—';
+    const strip = document.createElement('div');
+    strip.className = 'kmh-difficulty-stats-strip';
+    strip.setAttribute('aria-label', 'Selected difficulty HP Drain and Overall Difficulty');
+    const addStat = (key, label, value) => {
+        const pill = document.createElement('div');
+        pill.className = 'kmh-difficulty-stat kmh-difficulty-stat--' + key;
+        pill.title = label + ': ' + display(value) + ' (selected difficulty)';
+        const short = document.createElement('span'); short.className='kmh-difficulty-stat-label'; short.textContent=key.toUpperCase();
+        const number = document.createElement('strong'); number.className='kmh-difficulty-stat-value'; number.textContent=display(value);
+        const bar = document.createElement('span'); bar.className='kmh-difficulty-stat-track';
+        const fill = document.createElement('span'); fill.className='kmh-difficulty-stat-fill';
+        fill.style.width=Number.isFinite(value) ? Math.max(0,Math.min(100,value / 10 * 100))+'%' : '0%';
+        bar.append(fill);pill.append(short,number,bar);strip.append(pill);
     };
-    const row = (label, value, className, maximum) => `<tr><th class="beatmap-stats-table__label">${label}</th>${bar(className, value, maximum)}<td class="beatmap-stats-table__value">${statValue(value)}</td></tr>`;
-    statsRow.innerHTML = `
-        <table class="beatmap-stats-table">
-            <tbody>
-                ${row('HP Drain', hpDrain, 'bar--beatmap-stats-drain', 10)}
-                ${row('Accuracy', accuracy, 'bar--beatmap-stats-accuracy', 10)}
-            </tbody>
-        </table>
-    `;
+    addStat('hp','HP Drain',hpDrain);
+    addStat('od','Overall Difficulty',od);
+    // Avoid re-rendering when a MutationObserver or page navigation rechecks the same map.
+    const fingerprint = `${targetMap.id}:${display(hpDrain)}:${display(od)}`;
+    if (statsRow.dataset.kmhFingerprint !== fingerprint) {
+        statsRow.dataset.kmhFingerprint = fingerprint;
+        statsRow.replaceChildren(strip);
+    }
+
 }

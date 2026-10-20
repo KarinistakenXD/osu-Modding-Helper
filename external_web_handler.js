@@ -1,10 +1,16 @@
 // external_web_handler.js - The Background Service Worker
 
-// load our modular auth and api scripts
-try {
-    importScripts('osu_auth_manager.js', 'osu_api_client.js');
-} catch (e) {
-    console.error("Modding Helper: Failed to import background scripts", e);
+// Chromium runs this file as an MV3 service worker and needs importScripts().
+// Firefox / Zen runs the manifest's background.scripts in order in a
+// background event page, where importScripts() is not available.
+if (typeof importScripts === 'function') {
+    try {
+        importScripts('osu_auth_manager.js', 'osu_api_client.js');
+    } catch (e) {
+        console.error('Modding Helper: Failed to import background scripts', e);
+    }
+} else if (!self.OsuAuthManager || !self.OsuApiClient) {
+    console.error('Modding Helper: Firefox background dependencies were not loaded');
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -12,14 +18,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // 1. Auth Flow Actions
     if (request.action === 'startAuthFlow') {
         self.OsuAuthManager.startAuthFlow()
-            .then(data => sendResponse({ data }))
+            .then(async () => { self.OsuApiClient.clearCache(); sendResponse({ data: await self.OsuAuthManager.getAuthStatus() }); })
             .catch(err => sendResponse({ error: err.message }));
         return true; 
     }
 
     if (request.action === 'disconnectAuth') {
         self.OsuAuthManager.disconnect()
-            .then(() => sendResponse({ success: true }))
+            .then(() => { self.OsuApiClient.clearCache(); sendResponse({ data: { connected: false }, success: true }); })
             .catch(err => sendResponse({ error: err.message }));
         return true;
     }
@@ -46,11 +52,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
+    const readers = {
+        fetchDiscussions: () => self.OsuApiClient.fetchDiscussions(request.filters),
+        fetchDiscussionPosts: () => self.OsuApiClient.fetchDiscussionPosts(request.discussionId, request.cursor),
+        fetchFavourites: () => self.OsuApiClient.fetchFavourites(request.page)
+    };
+    if (Object.prototype.hasOwnProperty.call(readers, request.action)) {
+        Promise.resolve().then(readers[request.action]).then(data => sendResponse({ data })).catch(err => sendResponse({ error: err.message, status: err.status, retryAfter: err.retryAfter }));
+        return true;
+    }
+
     // 3. s-ul Image Uploader
     if (request.action === 'uploadImage') {
         handleImageUpload(request, sendResponse);
         return true; // Keep message channel open for async
     }
+    sendResponse({ error: 'Unknown extension action. Reload the extension and this osu! tab.' });
 });
 
 async function handleImageUpload(request, sendResponse) {

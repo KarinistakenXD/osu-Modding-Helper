@@ -1,0 +1,30 @@
+
+/* v1.4.7 rich link and reply-editor support */
+.kmh-linked-preview--reply{border-top:1px solid hsl(var(--hsl-h2,200,50%,45%));margin:8px 0 0;padding:9px;border-radius:4px;background:hsl(var(--hsl-b4,200,10%,20%))}
+.kmh-preview-art .kmh-preview-favicon{width:32px;height:32px;object-fit:contain;cursor:default}
+.kmh-preview-card.kmh-preview-fallback .kmh-preview-art{opacity:.8}
+.kmh-preview-card.kmh-preview-fallback .kmh-preview-favicon{width:28px;height:28px}
+.kmh-preview-card-actions a{text-decoration:none}
+.kmh-preview-card-actions a:hover{text-decoration:underline}
+.kmh-preview-card-actions a:focus-visible,.kmh-reply-tools button:focus-visible{outline:2px solid #71cfff;outline-offset:2px}
+.kmh-reply-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:5px 0 8px;font:11px/1.5 var(--font-default,Torus,Inter,sans-serif)}
+.kmh-reply-tools button{display:inline-flex;gap:5px;align-items:center;border:1px solid hsl(var(--hsl-b2,200,10%,30%));background:hsl(var(--hsl-b3,200,10%,25%));color:#eaf6ff;font:700 11px var(--font-default,Torus,sans-serif);border-radius:4px;padding:5px 8px;cursor:pointer}
+.kmh-reply-tools button:hover,.kmh-reply-tools button[aria-expanded="true"]{background:hsl(var(--hsl-b2,200,10%,30%));color:#fff}
+.kmh-reply-coach-results{flex-basis:100%;max-height:225px;overflow-y:auto;padding:8px 10px;border-left:2px solid #4fb5e8;background:hsl(var(--hsl-b5,200,10%,15%));color:#eef8ff;font:11px/1.6 var(--font-content,Inter,sans-serif)}
+.kmh-reply-coach-results ul{padding-left:20px;margin:7px 0}.kmh-reply-coach-results li{margin:4px 0}
+#kmh-upload-status-toast{position:fixed;right:20px;bottom:22px;z-index:2147483550;display:flex;max-width:min(420px,calc(100vw - 40px));align-items:center;gap:9px;flex-wrap:wrap;background:hsl(var(--hsl-b4,200,10%,20%));border-left:3px solid hsl(var(--hsl-h1,200,100%,70%));color:#fff;box-shadow:0 7px 26px #0009;border-radius:5px;padding:11px 13px;font:12px/1.5 var(--font-default,Torus,sans-serif)}
+#kmh-upload-status-toast button{cursor:pointer;background:hsl(var(--hsl-h2,200,50%,45%));border:0;border-radius:4px;padding:5px 10px;color:white;font-weight:700}
+@media(max-width:500px){.kmh-preview-art .kmh-preview-favicon{width:28px;height:28px}.kmh-reply-tools{gap:5px}.kmh-reply-tools button{padding:5px 7px}}
+
+/* Match osu! discussion header rather than repeating its full-page stat table. */
+#custom-beatmap-advanced-stats.custom-discussion-stats {padding:5px 0 0;margin-top:6px;border-top:1px solid hsl(var(--hsl-b2,200,10%,30%));background:none}
+.kmh-difficulty-stats-strip{display:flex;gap:7px;align-items:center;flex-wrap:wrap;color:#fff;font:11px/1.25 var(--font-default,Torus,Inter,Arial,sans-serif)}
+.kmh-difficulty-stat{display:inline-flex;align-items:center;gap:6px;min-width:86px;padding:5px 8px;background:hsl(var(--hsl-b4,200,10%,20%));border:1px solid hsl(var(--hsl-b2,200,10%,30%));border-radius:4px}
+.kmh-difficulty-stat-label{font-size:10px;color:hsl(var(--hsl-l2,200,40%,75%));font-weight:800;letter-spacing:.04em}
+.kmh-difficulty-stat-value{font-weight:800;min-width:19px;font-variant-numeric:tabular-nums}
+.kmh-difficulty-stat-track{display:inline-block;width:35px;height:4px;background:hsl(var(--hsl-b2,200,10%,30%));border-radius:5px;overflow:hidden}
+.kmh-difficulty-stat-fill{display:block;height:100%;background:#57b8ed}
+.kmh-difficulty-stat--hp .kmh-difficulty-stat-fill{background:#ecad5c}
+.kmh-post-attachment-thumb{display:block;width:112px;max-width:100%;height:65px;overflow:hidden;border-radius:4px;background:hsl(var(--hsl-b6,200,10%,10%));border:1px solid hsl(var(--hsl-b2,200,10%,30%));margin:6px 0 8px;cursor:zoom-in}
+.kmh-post-attachment-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.kmh-post-attachment-thumb:hover{border-color:hsl(var(--hsl-h1,200,100%,70%));box-shadow:0 0 0 1px hsl(var(--hsl-h1,200,100%,70%))}

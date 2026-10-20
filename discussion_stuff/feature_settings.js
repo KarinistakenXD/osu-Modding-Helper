@@ -3,7 +3,8 @@ const MOD_HELPER_DEFAULT_SETTINGS = {
     imageUploader: true,
     discussionDownload: true,
     headerMetadata: true,
-    markdownTools: true
+    modWorkspace: true,
+    draftRecovery: true
 };
 
 window.modHelperSettings = { ...MOD_HELPER_DEFAULT_SETTINGS };
@@ -35,17 +36,18 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
 loadModHelperSettings();
 
-function setupOsuAuthListeners(connectBtn) {
+function setupOsuAuthListeners(connectBtn, host = document) {
+    if (!connectBtn) return;
     if (connectBtn.dataset.osuAuthWired === 'true') return;
     connectBtn.dataset.osuAuthWired = 'true';
 
-    const statusText = document.getElementById('mod-helper-osu-status');
+    const statusText = host.querySelector('#mod-helper-osu-status');
     let isConnected = false;
 
     function render(status) {
         const connected = !!(status && status.connected);
         const expired = !!(status && status.expired);
-        isConnected = connected && !expired;
+        isConnected = connected;
 
         connectBtn.textContent = isConnected ? 'Disconnect osu! Account' : 'Connect osu! Account';
         connectBtn.classList.toggle('btn-osu-big--disabled', false);
@@ -53,7 +55,7 @@ function setupOsuAuthListeners(connectBtn) {
 
         if (statusText) {
             if (isConnected) {
-                statusText.textContent = 'Status: Connected';
+                statusText.textContent = expired ? 'Status: Connected — refresh available' : 'Status: Connected';
                 statusText.style.color = '#a6cc2b';
             } else if (connected && expired) {
                 statusText.textContent = 'Status: Session expired — reconnect';
@@ -90,13 +92,10 @@ function setupOsuAuthListeners(connectBtn) {
             }
 
             window.dispatchEvent(new CustomEvent('mod-helper-osu-auth-changed'));
-            render(response && response.data);
+            refreshStatus();
         });
     });
 }
 
-const osuAuthObserver = new MutationObserver(() => {
-    const connectBtn = document.getElementById('mod-helper-osu-connect');
-    if (connectBtn) setupOsuAuthListeners(connectBtn);
-});
-osuAuthObserver.observe(document.body, { childList: true, subtree: true });
+// Explicitly initialized by the settings modal. Do not observe the entire
+// osu!web DOM simply to find a button: it caused stale modal references.

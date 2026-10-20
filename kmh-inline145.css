@@ -1,0 +1,51 @@
+/* v1.4.5 — native New Discussion heading/pin intentionally untouched. */
+.beatmap-discussion-new .beatmap-discussion-new__toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0;width:100%}
+.beatmap-discussion-new .beatmap-discussion-new__toolbar>.post-box-toolbar{display:inline-flex;align-items:center;flex:0 1 auto;flex-wrap:wrap;min-width:0}
+.beatmap-discussion-new .kmh-editor-actions{display:inline-flex;align-items:center;flex-wrap:wrap;gap:3px;margin-left:auto;padding-left:7px;border-left:1px solid hsl(var(--hsl-b2,200,10%,30%));font-family:var(--font-default,Torus,Inter,Arial,sans-serif)}
+.beatmap-discussion-new .kmh-editor-actions[hidden],.beatmap-discussion-new .kmh-editor-tool[hidden]{display:none!important}
+.beatmap-discussion-new .kmh-editor-tool{appearance:none;display:inline-flex;gap:5px;align-items:center;justify-content:center;min-height:28px;padding:4px 7px;border:1px solid transparent;border-radius:4px;background:transparent;color:hsl(var(--hsl-c2,200,40%,90%));font:700 11px var(--font-default,Torus,Inter,Arial,sans-serif);white-space:nowrap;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+.beatmap-discussion-new .kmh-editor-tool:hover,.beatmap-discussion-new .kmh-editor-tool:focus-visible{background:hsl(var(--hsl-b3,200,10%,25%));color:white;border-color:hsl(var(--hsl-b2,200,10%,30%))}
+.beatmap-discussion-new .kmh-editor-tool:focus-visible{outline:2px solid hsl(var(--hsl-h1,200,100%,70%));outline-offset:1px}
+.beatmap-discussion-new .kmh-editor-tool.is-active{color:white;background:hsl(var(--hsl-h2,200,50%,45%));border-color:hsl(var(--hsl-h1,200,100%,70%))}
+.beatmap-discussion-new .kmh-editor-tool[data-kmh-open-settings]{color:hsl(var(--hsl-h1,200,100%,70%))}
+.beatmap-discussion-new .kmh-editor-tool .kmh-tool-icon{display:inline-grid;place-items:center;font-size:12px;width:15px;height:15px}
+.beatmap-discussion-new .kmh-inline-coach{clear:both;width:100%;box-sizing:border-box;margin-top:12px;background:hsl(var(--hsl-b4,200,10%,20%));border:1px solid hsl(var(--hsl-b2,200,10%,30%));border-top:2px solid hsl(var(--hsl-h2,200,50%,45%));border-radius:5px;color:white;font:12px/1.5 var(--font-content,Inter,Arial,sans-serif);overflow:hidden}
+.beatmap-discussion-new .kmh-inline-coach[hidden],.beatmap-discussion-new .kmh-inline-coach [hidden]{display:none!important}
+.kmh-inline-coach *{box-sizing:border-box}
+.kmh-inline-coach .kmh-coach-inline-head{display:flex;align-items:center;justify-content:space-between;gap:10px;background:hsl(var(--hsl-b3,200,10%,25%));padding:10px 12px}
+.kmh-inline-coach .kmh-coach-inline-head>div{display:flex;flex-wrap:wrap;gap:6px 13px;align-items:center}
+.kmh-inline-coach .kmh-coach-inline-head strong{font-size:13px;color:hsl(var(--hsl-c1,200,40%,100%))}
+.kmh-inline-coach .kmh-coach-inline-head strong i{color:hsl(var(--hsl-h1,200,100%,70%));margin-right:5px}
+.kmh-inline-coach .kmh-coach-inline-head span{font-size:11px;color:hsl(var(--hsl-l2,200,40%,75%))}
+.kmh-inline-coach :is(button,select){border:1px solid hsl(var(--hsl-b2,200,10%,30%));background:hsl(var(--hsl-b3,200,10%,25%));color:#fff;padding:6px 8px;border-radius:4px;font:700 11px var(--font-default,Torus,Inter,Arial,sans-serif);cursor:pointer}
+.kmh-inline-coach :is(button,select):focus-visible{outline:2px solid hsl(var(--hsl-h1,200,100%,70%));outline-offset:2px}
+.kmh-inline-coach button:hover{background:hsl(var(--hsl-b2,200,10%,30%))}
+.kmh-inline-coach .kmh-coach-close{font-size:18px;min-width:29px;padding:2px 6px;line-height:1.2}
+.kmh-inline-coach .kmh-coach-inline-controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:9px 12px 3px}
+.kmh-inline-coach .kmh-coach-inline-controls label{font-size:11px;font-weight:700;color:hsl(var(--hsl-l2,200,40%,75%));display:inline-flex;gap:8px;align-items:center}
+.kmh-inline-coach .kmh-coach-stale{font-size:11px;color:#ffc06c}
+.kmh-inline-coach .kmh-coach-results{padding:4px 12px 9px;max-height:340px;overflow:auto}
+.kmh-inline-coach .kmh-coach-summary{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:5px;border-bottom:1px solid hsl(var(--hsl-b3,200,10%,25%));padding:7px 0}
+.kmh-inline-coach .kmh-coach-summary strong{font-size:12px;color:hsl(var(--hsl-h1,200,100%,70%))}
+.kmh-inline-coach .kmh-coach-summary span{font-size:11px;color:hsl(var(--hsl-l2,200,40%,75%))}
+.kmh-inline-coach .kmh-coach-pill-row{display:flex;flex-wrap:wrap;gap:5px;padding:9px 0}
+.kmh-inline-coach .kmh-coach-pill{font-size:10px;font-weight:700;border-radius:4px;background:hsl(var(--hsl-b3,200,10%,25%));color:hsl(var(--hsl-l2,200,40%,75%));padding:4px 7px}
+.kmh-inline-coach .kmh-coach-pill.is-found{color:#a6ebc1}
+.kmh-inline-coach .kmh-coach-pill.is-missing{color:#ffd4a3}
+.kmh-inline-coach .kmh-coach-finding-list{display:grid;gap:6px;padding-top:2px}
+.kmh-inline-coach .kmh-coach-finding{border-left:2px solid #5e8191;background:hsl(var(--hsl-b5,200,10%,15%));padding:8px 10px;border-radius:3px}
+.kmh-inline-coach .kmh-coach-finding.kmh-coach-warn{border-left-color:#e3a54a}
+.kmh-inline-coach .kmh-coach-finding strong{font-size:11px;color:#fff}
+.kmh-inline-coach .kmh-coach-finding p,.kmh-inline-coach .kmh-coach-refs p{font-size:11px;line-height:1.5;color:hsl(var(--hsl-c2,200,40%,90%));margin:3px 0 0}
+.kmh-inline-coach .kmh-coach-empty{color:hsl(var(--hsl-l2,200,40%,75%))}
+.kmh-inline-coach .kmh-coach-refs{padding:9px 0 0;font-size:11px}
+.kmh-inline-coach .kmh-coach-refs summary{cursor:pointer;color:hsl(var(--hsl-h1,200,100%,70%))}
+.kmh-inline-coach .kmh-coach-refs a{display:block;margin:6px 0 2px;color:hsl(var(--hsl-h1,200,100%,70%))}
+.kmh-inline-coach .kmh-coach-inline-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:hsl(var(--hsl-b3,200,10%,25%));font-size:10px;color:hsl(var(--hsl-l2,200,40%,75%))}
+.kmh-inline-coach .kmh-coach-copy-preview{display:block;resize:vertical;width:calc(100% - 24px);margin:9px 12px;min-height:62px;background:hsl(var(--hsl-b6,200,10%,10%));color:#fff;border:1px solid hsl(var(--hsl-b2,200,10%,30%));padding:8px;font:11px/1.45 var(--font-content,Inter,Arial,sans-serif)}
+.kmh-inline-coach .kmh-coach-copy-clean{margin:0 12px 10px}
+@media(max-width:660px){.beatmap-discussion-new .kmh-editor-actions{margin-left:0}.beatmap-discussion-new .kmh-editor-tool{min-height:27px}.kmh-inline-coach .kmh-coach-results{max-height:290px}}
+@media(max-width:435px){.beatmap-discussion-new .kmh-editor-tool .kmh-tool-label{display:none}.beatmap-discussion-new .kmh-editor-tool{padding:4px 6px}}
+/* Activity notification survives moving Finder from the heading into the editor toolbar. */
+.beatmap-discussion-new .kmh-editor-tool[data-kmh-open-finder][data-unread]:not([data-unread="0"]){position:relative}
+.beatmap-discussion-new .kmh-editor-tool[data-kmh-open-finder][data-unread]:not([data-unread="0"])::after{content:'';position:absolute;top:2px;right:2px;width:7px;height:7px;background:#68ceff;border:1px solid hsl(var(--hsl-b4,200,10%,20%));border-radius:50%}

@@ -1,43 +1,96 @@
 {
   "manifest_version": 3,
   "name": "Karin's osu! Modding Helper",
-  "version": "1.2",
+  "version": "1.1.0",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtA6TD364nKPEonrHRZ3onkfLWj+P9QhaxkzNrTTprvpLSr2S0x/l5bK+0yfq8zzGW+WEfnwuYyBB2doSEZepPzol4/2y4uHPgPzKqyO2//2ddUifaA7FLaKPFCDg8NHiQLris/VGf1csYfwzqLmcYKn6r9WTkmFBSINEV7xtZPhoi8/9qpTBMPIYQdRMzqZyJPB/VOPtfg1F1NvTmkAgGEKGCWC0WR2+jBkkFaq1zSyrsYexxuzWrStjzZKjQvtmux1u/fn7/jnkVzQ7LqrWFGkwcMfj+R1uwCUGA9KDBtrJkT7oUtE0h6IRHQkcPLR9E/ENbn0B3IV3jsUtT7JEoQIDAQAB",
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "24": "icons/icon-24.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "64": "icons/icon-64.png",
+      "128": "icons/icon-128.png"
+    }
   },
-  "description": "QoL extension for osu! discussion pages: s-ul uploads, markdown tools, duplicate checking, and BN frameworks.",
+  "description": "osu! modding workspace with paged discussion history, live Draft Coach, Review helper, link previews, and RC shortcuts.",
   "permissions": [
     "storage",
-    "clipboardRead",
-    "identity"
+    "identity",
+    "activeTab"
   ],
   "host_permissions": [
     "*://osu.ppy.sh/*",
     "*://s-ul.eu/*",
-    "https://osu-proxy.yourname.workers.dev/*"
+    "https://osu-proxy.ameliar-online.workers.dev/*"
   ],
   "background": {
-    "service_worker": "external_web_handler.js"
+    "service_worker": "external_web_handler.js",
+    "scripts": [
+      "osu_auth_manager.js",
+      "osu_api_client.js",
+      "external_web_handler.js"
+    ]
   },
   "content_scripts": [
     {
       "matches": [
-        "*://osu.ppy.sh/beatmapsets/*/discussion*"
+        "*://osu.ppy.sh/*"
       ],
       "css": [
-        "discussion_styles.css"
+        "discussion_styles.css",
+        "mod_workspace.css",
+        "theme.css",
+        "kmh-redesign.css",
+        "kmh-polish.css",
+        "kmh-ux143.css",
+        "kmh-inline145.css",
+        "kmh-v146.css",
+        "kmh-v147.css",
+        "kmh-v110.css",
+        "kmh-v110-rc2.css",
+        "kmh-cross-browser.css"
       ],
       "js": [
         "discussion_stuff/feature_settings.js",
         "discussion_stuff/discussion_download.js",
         "discussion_stuff/header_metadata.js",
+        "discussion_stuff/coach_core.js",
+        "discussion_stuff/coach_ui.js",
+        "discussion_stuff/markdown_overlay.js",
+        "discussion_stuff/link_preview.js",
         "discussion_stuff/toolbar_injector.js",
         "discussion_stuff/image_uploader.js",
         "discussion_stuff/toggled_RC_book.js",
+        "discussion_stuff/mod_workspace.js",
+        "discussion_stuff/review_tools.js",
+        "discussion_stuff/review_format.js",
+        "discussion_stuff/onboarding_tour.js",
         "discussion_stuff/main.js"
       ],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "osu-modding-helper@karinistakenxd",
+      "strict_min_version": "121.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ],
+        "optional": [
+          "authenticationInfo",
+          "websiteContent"
+        ]
+      }
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
 }

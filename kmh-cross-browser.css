@@ -1,0 +1,38 @@
+/* Browser-neutral RC drawer: same height and top alignment as osu!'s navbar. */
+#custom-rc-panel.kmh-rc-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(450px, 100vw);
+  height: 100vh;
+  height: 100dvh;
+  background: hsl(var(--hsl-b1, 200, 10%, 40%));
+  z-index: 10000;
+  box-shadow: -4px 0 20px rgba(0,0,0,.6);
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  font-family: var(--font-default, Torus, Inter, Arial, sans-serif);
+}
+#custom-rc-panel .kmh-rc-drawer__header {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 var(--navbar-height, 50px);
+  height: var(--navbar-height, 50px);
+  max-height: var(--navbar-height, 50px);
+  min-height: 0;
+  padding: 5px 14px 5px 17px;
+  background: hsl(var(--hsl-b2, 200, 10%, 30%));
+  border-bottom: 1px solid hsl(var(--hsl-b3, 200, 10%, 25%));
+  gap: 12px;
+}
+#custom-rc-panel .kmh-rc-drawer__heading {min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1px;}
+#custom-rc-panel .kmh-rc-drawer__title {display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; font-size: 12px; line-height: 17px; color: #fff;}
+#custom-rc-panel .kmh-rc-drawer__subtitle {display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: hsl(var(--hsl-l1, 200, 40%, 80%)); font-size: 10px; line-height: 13px;}
+#custom-rc-panel .kmh-rc-drawer__close {display: inline-flex; align-items: center; justify-content: center; flex: 0 0 30px; width: 30px; height: 30px; padding: 0; background: transparent; border: 0; border-radius: 4px; color: hsl(var(--hsl-l1, 200, 40%, 80%)); cursor: pointer; font-size: 16px;}
+#custom-rc-panel .kmh-rc-drawer__close:hover {background: hsl(var(--hsl-b3, 200, 10%, 25%)); color: #fff;}
+#custom-rc-panel .kmh-rc-drawer__close:focus-visible {outline: 2px solid hsl(var(--hsl-h1, 200, 100%, 70%)); outline-offset: 2px;}
+#custom-rc-panel iframe {display: block; min-height: 0; flex: 1 1 auto; width: 100%; border: 0; background: hsl(var(--hsl-b1, 200, 10%, 40%));}
+@media(max-width:500px) {#custom-rc-panel.kmh-rc-drawer {width: 100vw;}}

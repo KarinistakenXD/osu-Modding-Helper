@@ -1,0 +1,49 @@
+/* Accessible, route-independent settings entry, outside the native editor. */
+#kmh-helper-entry{--kmh-dock: hsl(var(--hsl-b4,200,10%,20%));position:fixed;bottom:18px;left:18px;z-index:550;max-width:calc(100vw - 35px);display:flex;align-items:center;gap:7px;padding:5px;border:1px solid hsl(var(--hsl-b2,200,10%,30%));border-radius:9px;background:var(--kmh-dock);box-shadow:0 6px 28px #0007;color:#fff;font-family:var(--font-default, Torus,Inter,Arial,sans-serif)}
+#kmh-helper-entry[hidden]{display:none!important}
+#kmh-helper-entry button{font:700 12px var(--font-default,Torus,Inter,sans-serif);border:0;cursor:pointer;color:#fff;transition:background .12s,filter .12s}
+#kmh-helper-entry .kmh-entry-main{display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:6px;background:transparent;white-space:nowrap}
+#kmh-helper-entry .kmh-entry-main i{color:hsl(var(--hsl-h1,200,100%,70%));font-size:15px}
+#kmh-helper-entry .kmh-entry-main:hover{background:hsl(var(--hsl-b3,200,10%,25%))}
+#kmh-helper-entry .kmh-entry-connect{padding:10px 12px;background:hsl(var(--hsl-h2,200,50%,45%));border-radius:6px;white-space:nowrap}
+#kmh-helper-entry .kmh-entry-connect:hover{filter:brightness(1.16)}
+#kmh-helper-entry .kmh-entry-connect[hidden]{display:none!important}
+#kmh-helper-entry.is-connected .kmh-entry-main:after{content:'';width:7px;height:7px;display:block;border-radius:100%;background:hsl(var(--hsl-lime-1,90,80%,60%));}
+#kmh-helper-entry button:focus-visible{outline:2px solid hsl(var(--hsl-h1,200,100%,70%));outline-offset:2px}
+.beatmap-discussion-new .kmh-native-shortcut[data-kmh-open-settings]{min-width:30px;min-height:30px;display:inline-flex;align-items:center;justify-content:center;opacity:1!important;visibility:visible!important}
+/* OAuth onboarding has strong hierarchy and must not visually blend with normal page chrome. */
+.kmh-workspace-overlay .kmh-account-strip.kmh-needs-auth{background:linear-gradient(125deg,hsl(var(--hsl-b4,200,10%,20%)),hsl(var(--hsl-b3,200,10%,25%)));padding:18px 24px;align-items:center;border-bottom:2px solid hsl(var(--hsl-h2,200,50%,45%));gap:20px}
+.kmh-workspace-overlay .kmh-onboarding-title{display:block;color:#fff;font-size:16px;font-weight:800;margin-bottom:6px}
+.kmh-workspace-overlay .kmh-onboarding-desc{color:hsl(var(--hsl-c2,200,40%,90%));font-size:12px;line-height:1.6;max-width:580px}
+.kmh-workspace-overlay .kmh-onboarding-note{display:block;opacity:.84;line-height:1.45;margin-top:8px;max-width:610px}
+.kmh-workspace-overlay .kmh-account-strip.kmh-needs-auth [data-connect]{font-size:13px;min-width:181px;min-height:40px;padding:10px 15px;white-space:nowrap}
+.kmh-workspace-overlay .kmh-auth-empty{padding:42px 20px;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center}
+.kmh-workspace-overlay .kmh-auth-empty .fa-lock{font-size:22px;color:hsl(var(--hsl-h1,200,100%,70%))}
+.kmh-workspace-overlay .kmh-auth-empty strong{color:white;font-size:14px}
+.kmh-workspace-overlay .kmh-auth-empty p{max-width:490px;line-height:1.6}
+/* Actionability: links look like links, with visible external-link symbols. */
+.kmh-workspace-overlay .kmh-mod-destination>a:first-child{display:inline-flex;gap:7px;align-items:baseline;color:hsl(var(--hsl-c1,200,40%,100%))!important;transition:color .12s}
+.kmh-workspace-overlay .kmh-mod-destination>a .kmh-link-arrow{font-size:11px;color:hsl(var(--hsl-h1,200,100%,70%))}
+.kmh-workspace-overlay .kmh-mod-destination>a:hover,.kmh-workspace-overlay .kmh-discussion-excerpt:hover,.kmh-workspace-overlay .kmh-thread-link:hover{text-decoration:underline!important;text-underline-offset:3px;color:hsl(var(--hsl-h1,200,100%,70%))!important}
+.kmh-workspace-overlay .kmh-discussion-excerpt{display:block;cursor:pointer;transition:color .12s}
+.kmh-workspace-overlay .kmh-thread-link{display:inline-flex;align-items:center;gap:5px;padding:7px 0}
+.kmh-workspace-overlay .kmh-row-date{font-size:11px;font-weight:650;cursor:help;font-variant-numeric:tabular-nums}
+.kmh-workspace-overlay time.kmh-row-date{white-space:nowrap}
+/* Timecodes for osu! editor jump, with an independent copy affordance. */
+.kmh-workspace-overlay .kmh-timestamp-block{margin:8px 0 4px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 9px;border:1px solid hsl(var(--hsl-b3,200,10%,25%));border-radius:5px;background:hsl(var(--hsl-b5,200,10%,15%))}
+.kmh-workspace-overlay .kmh-timestamp-label{color:hsl(var(--hsl-f1,200,10%,65%));font-size:9px;letter-spacing:.04em;font-weight:850;white-space:nowrap;margin-right:2px}
+.kmh-workspace-overlay .kmh-timestamp-chip{border-radius:4px;border:1px solid hsl(var(--hsl-b2,200,10%,30%));background:hsl(var(--hsl-b3,200,10%,25%));display:inline-flex;align-items:center;gap:7px;padding:5px 7px;color:hsl(var(--hsl-h1,200,100%,70%))!important;text-decoration:none;font:700 11px Inter,monospace;transition:background .12s,border-color .12s}
+.kmh-workspace-overlay .kmh-timestamp-chip i{font-size:9px;opacity:.83}
+.kmh-workspace-overlay .kmh-timestamp-chip:hover{background:hsl(var(--hsl-b2,200,10%,30%));border-color:hsl(var(--hsl-h2,200,50%,45%))}
+.kmh-workspace-overlay .kmh-timestamp-copy{background:transparent;color:hsl(var(--hsl-h1,200,100%,70%));padding:5px 7px;border:0;border-radius:4px;margin-left:auto;font-size:11px;font-weight:700;cursor:pointer}
+.kmh-workspace-overlay .kmh-timestamp-copy:hover{background:hsl(var(--hsl-b3,200,10%,25%))}
+#mod-helper-settings-modal .kmh-auth-settings{border-left:3px solid hsl(var(--hsl-h2,200,50%,45%))}
+#mod-helper-settings-modal .kmh-auth-settings h4 i{margin-right:6px;color:hsl(var(--hsl-h1,200,100%,70%))}
+@media(max-width:760px){.kmh-workspace-overlay .kmh-account-strip.kmh-needs-auth{flex-wrap:wrap;padding:14px}.kmh-workspace-overlay .kmh-account-strip.kmh-needs-auth [data-connect]{width:100%}}
+@media(max-width:480px){#kmh-helper-entry{bottom:9px;left:9px;padding:4px}#kmh-helper-entry .kmh-entry-main{padding:9px}#kmh-helper-entry .kmh-entry-main span{display:none}#kmh-helper-entry .kmh-entry-connect{font-size:11px;padding:9px}}
+
+.kmh-workspace-overlay .kmh-rich-link{color:hsl(var(--hsl-h1,200,100%,70%));text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
+.kmh-workspace-overlay .kmh-rich-link:hover{filter:brightness(1.15)}
+.kmh-workspace-overlay .kmh-rich-link .kmh-link-arrow{font-size:9px;margin-left:4px}
+.kmh-workspace-overlay .kmh-copy-permalink{background:transparent;color:hsl(var(--hsl-h1,200,100%,70%));border:1px solid hsl(var(--hsl-b2,200,10%,30%))}
+.kmh-workspace-overlay .kmh-copy-permalink:hover{background:hsl(var(--hsl-b3,200,10%,25%))}

@@ -1,6 +1,4 @@
 function toggled_RC_book() {
-    const toolbars = document.querySelectorAll('.custom-modding-toolbar');
-    if (!toolbars.length) return;
 
     const mapDataNode = document.getElementById('json-beatmapset');
     if (!mapDataNode) return;
@@ -110,26 +108,8 @@ function toggled_RC_book() {
 
     syncOpenPanel();
 
-    toolbars.forEach(toolbar => {
-        if (toolbar.querySelector('.rc-lens-btn')) return;
-
-        const rcBtn = document.createElement('button');
-        rcBtn.className = 'rc-lens-btn';
-        rcBtn.innerHTML = '<i class="fas fa-book"></i>';
-        rcBtn.title = `Toggle osu!${displayMode} RC Guidelines?`;
-
-        rcBtn.style.background = 'transparent';
-        rcBtn.style.border = 'none';
-        rcBtn.style.color = '#fff';
-        rcBtn.style.cursor = 'pointer';
-        rcBtn.style.fontSize = '14px';
-        rcBtn.style.marginLeft = 'auto';
-
-        rcBtn.onmouseover = () => rcBtn.style.color = '#88b300';
-        rcBtn.onmouseout = () => rcBtn.style.color = '#fff';
-
-        rcBtn.onclick = (e) => {
-            e.preventDefault();
+    const showPanel = (e) => {
+        e?.preventDefault?.();
 
             let panel = document.getElementById('custom-rc-panel');
             if (panel) {
@@ -140,31 +120,29 @@ function toggled_RC_book() {
 
             panel = document.createElement('div');
             panel.id = 'custom-rc-panel';
-            panel.style = 'position: fixed; top: 0; right: 0; width: 450px; height: 100vh; background: hsl(var(--hsl-b1)); z-index: 10000; box-shadow: -4px 0 20px rgba(0,0,0,0.6); display: flex; flex-direction: column;';
-
+            panel.className = 'kmh-rc-drawer';
+            // Leave layout to the stylesheet; its header shares osu!'s
+            // --navbar-height. No hard-coded 70px header or padded spacer.
             panel.innerHTML = `
-                <div style="background: hsl(var(--hsl-b2)); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3); z-index: 2;">
-                    <div>
-                        <span data-rc-panel-title style="display: block; color: #fff; font-weight: 600; font-size: 14px;">osu!${displayMode ? `${displayMode} ` : ''}${difficultyTier} RC Guidelines</span>
-                        <span data-rc-difficulty style="display: block; color: #aaa; font-size: 12px; margin-top: 4px;">${difficultyName} - ${difficultyRating === null ? difficultyRange : `${difficultyRating.toFixed(2)}★ -${difficultyRange}`}</span>
+                <div class="kmh-rc-drawer__header">
+                    <div class="kmh-rc-drawer__heading">
+                        <span data-rc-panel-title class="kmh-rc-drawer__title">Ranking Criteria</span>
+                        <span data-rc-difficulty class="kmh-rc-drawer__subtitle"></span>
                     </div>
-                    <button id="close-rc-panel" style="background: none; border: none; color: #aaa; cursor: pointer; font-size: 18px; padding: 0;">
-                        <i class="fas fa-times"></i>
+                    <button type="button" id="close-rc-panel" class="kmh-rc-drawer__close" aria-label="Close Ranking Criteria panel" title="Close Ranking Criteria panel">
+                        <i class="fas fa-times" aria-hidden="true"></i>
                     </button>
                 </div>
-                <iframe src="${rcLink}" style="flex-grow: 1; border: none; width: 100%; background: hsl(var(--hsl-b1));"></iframe>
+                <iframe title="osu! Ranking Criteria" referrerpolicy="strict-origin-when-cross-origin"></iframe>
             `;
 
             document.body.appendChild(panel);
+            syncOpenPanel();
 
             const closeBtn = panel.querySelector('#close-rc-panel');
             closeBtn.onclick = () => {
                 panel.style.display = 'none';
             };
-            closeBtn.onmouseover = () => closeBtn.style.color = '#fff';
-            closeBtn.onmouseout = () => closeBtn.style.color = '#aaa';
-        };
-
-        toolbar.appendChild(rcBtn);
-    });
+    };
+    window.KmhOpenRC = showPanel;
 }

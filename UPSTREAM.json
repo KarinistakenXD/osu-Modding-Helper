@@ -1,0 +1,5 @@
+{
+  "repository": "https://github.com/ppy/osu-web",
+  "baseline_commit_from_previous_package": "7219c167468150fa2f718095980d5e30b395d8a2",
+  "current_adaptation": "Browser extension controls use osu!web HSL CSS variables and inspected native New Discussion markup. Obsolete markdown parser/preview bundles were removed. No osu!web runtime assets or fonts are redistributed."
+}
