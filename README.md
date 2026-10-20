@@ -4,7 +4,7 @@ A browser extension for **osu! beatmap discussions** that helps mappers and modd
 
 **Public release:** v1.1.0 (following the GitHub v1.0 release)  
 **Platform:** Chromium (Chrome / Edge / Opera / Brave / Vivaldi) and Firefox / Zen (Gecko) · Manifest V3  
-**Status:** v1.1.0 GitHub package; Review-page Markdown highlighting is disabled. Local tests pass; live osu!web Review/OAuth integration still needs user testing.
+**Status:** v1.1.0 GitHub package
 
 > This is a community extension, not an official osu! / BN / NAT tool. It does not provide staff privileges, certify rankability, or submit and resolve discussions automatically.
 
