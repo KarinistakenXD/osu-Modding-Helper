@@ -113,7 +113,3 @@ The included `VERIFICATION.md` describes the reproducible local tests and what s
 This distribution retains the repository's **GNU Affero General Public License v3** (`LICENCE`) and existing third-party attribution. The UI design is inspired by osu!web's publicly documented patterns but does **not** redistribute osu!web fonts or proprietary art assets. osu! and related names are associated with their respective owners.
 
 The *Road to BN* methodology is Karin-'s independent personal teaching guide, not an official Ranking Criteria document. Refer to the [official Ranking Criteria](https://osu.ppy.sh/wiki/en/Ranking_criteria) for binding requirements.
-
-### RC3 safety change
-
-The earlier RC2 syntax highlighter wrapped the native React-managed textarea. That DOM manipulation could conflict with React re-rendering, so RC3 **never wraps or reparents the textarea**. It renders a non-interactive separate layer, enabled by default for native discussion and reply textareas. Test the live editor before publishing a stable v1.1.0.
