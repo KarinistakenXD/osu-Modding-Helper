@@ -16,7 +16,7 @@ A browser extension for **osu! beatmap discussions** that helps mappers and modd
 4. Disable older copies to avoid duplicate editor controls.
 5. Open an osu! beatmapset discussion page and reload it. The introductory spotlight tour explains the features.
 
-**Browser status (RC4):** Chromium background service-worker compatibility and Firefox-style background event-page initialization have been checked in isolation. Real Firefox/Zen and Opera installations and live osu! OAuth have **not** been verified. Firefox OAuth uses a browser-specific redirect URL that must be registered with the osu! OAuth application; the inherited proxy/client configuration may reject it. Browsing and local editor utilities do not require OAuth.
+**Browser status:** Chromium background service-worker compatibility and Firefox-style background event-page initialization have been checked in isolation. Real Firefox/Zen and Opera installations and live osu! OAuth have **not** been tested. Firefox OAuth uses a browser-specific redirect URL that must be registered with the osu! OAuth application; the inherited proxy/client configuration may reject it. Browsing and local editor utilities do not require OAuth.
 
 **Upgrade note:** v1.1.0 is the *public* version number. The development ZIPs used larger experimental numbers; do not load multiple builds at once.
 
@@ -27,7 +27,7 @@ A browser extension for **osu! beatmap discussions** that helps mappers and modd
 The extension uses compact helper controls near the native Markdown toolbar. osu!web keeps ownership of the message field, pin button, post-type buttons, and submission workflow.
 
 - **Draft Coach** checks the text you are already writing. While Coach is open, analysis updates about **900 ms after typing stops**, including when IME input finishes.
-- **Linked attachments** detect direct image links, osu! screenshot URLs, s-ul.eu links, ordinary websites, and common file URLs. Images can display previews; other links receive clickable cards. A separate, non-interactive highlighting layer colours Markdown in the native discussion/reply textarea without moving the textarea or changing the submitted text. It is **enabled by default on normal discussions and replies** and can be turned off with the highlighter icon. Highlighting is **disabled entirely on New Review pages** to avoid interfering with osu!'s Slate editor. It covers bold/italic, links and image syntax, inline/fenced code, headings, quotes, strikethrough, and osu! timestamps. For very long drafts (more than 30,000 characters), it temporarily falls back to the unmodified native text display.
+- **Linked attachments** detect direct image links, osu! screenshot URLs, s-ul.eu links, ordinary websites, and common file URLs. Images can display previews; other links receive clickable cards. A separate, non-interactive highlighting layer colours Markdown in the native discussion/reply textarea without moving the textarea or changing the submitted text. It is **enabled by default on normal discussions and replies** and can be turned off with the highlighter icon. It covers bold/italic, links and image syntax, inline/fenced code, headings, quotes, strikethrough, and osu! timestamps. For very long drafts (more than 30,000 characters), it temporarily falls back to the unmodified native text display.
 - **Paste/drop image upload** supports user-initiated clipboard or dropped images through an optional **s-ul.eu** API key. Uploaded images are inserted as Markdown. Pasting a standalone screenshot URL can also insert an image link automatically.
 - **Ranking Criteria** remains one click away, with mode-specific reference material. Its side-panel header now matches osu!web’s 50px navigation height, instead of covering a taller strip.
 - **Replies** can have compact Preview links and Coach controls when their native text editor is present.
@@ -36,6 +36,7 @@ The extension uses compact helper controls near the native Markdown toolbar. osu
 ### Draft Coach and the *Road to BN* approach
 
 Draft Coach uses the personal educational handbook **Karin-'s Road to BN: Modding Judgement & International English Writing** as its methodology. The checks are local and rule-based—not a cloud LLM, an official BN application grader, or a substitute for listening and playtesting.
+https://docs.google.com/document/d/1ER_5XWplgFtTjd_TPRfR3flTeWSXy_lTOHJ-bMlVVwc/edit?usp=sharing
 
 Its focus is **Where → Observation → Why → Impact → Repair**, with optional comparison to similar phrases and alternative solutions for larger issues. It can also point you towards relevant Ranking Criteria topics, flag unsupported authority claims, and detect simple Markdown formatting problems.
 
