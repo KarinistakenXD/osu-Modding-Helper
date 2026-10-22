@@ -1,0 +1,79 @@
+name: Publish v1.0.0 and v1.1.0 historical releases
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-historical-releases.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-historical-releases
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out complete repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish both source snapshots
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release-assets"
+
+          cat > "$RUNNER_TEMP/notes-v1.0.0.md" <<'NOTES'
+          First public archive of Karin's osu! Modding Helper.
+
+          This release preserves the original source committed on 20 September 2026. It includes the original beatmap discussion utilities, metadata tools, image upload integration and Ranking Criteria panel.
+
+          **Historical version note:** The original source manifest identifies itself internally as version 1.2; `v1.0.0` is the public GitHub release label requested for this first repository generation. No source files have been rewritten to conceal that difference.
+
+          Download and extract the attached ZIP, then load the directory containing `manifest.json` in your browser's extension manager.
+
+          This is an unofficial community extension, not an osu! staff tool.
+          NOTES
+
+          cat > "$RUNNER_TEMP/notes-v1.1.0.md" <<'NOTES'
+          Public v1.1.0 update for Karin's osu! Modding Helper.
+
+          Features include an updated modding workspace, paginated discussion history and filtering, Draft Coach inspired by Karin's Road to BN, link and image previews, editor and review helpers, Ranking Criteria access, onboarding, custom icons, and cross-browser startup support.
+
+          **Compatibility:** Chromium is the primary target. Firefox/Zen support and live osu! OAuth require additional browser-specific verification. Review-editor integration and Markdown highlighting have been tested in local fixtures but should be checked on the live site.
+
+          Download and extract the attached ZIP, then load the directory containing `manifest.json`. Disable any older installed copy first to avoid duplicate controls.
+
+          Source snapshot: the repository's 21 October 2026 update, before the release automation was added. This is an unofficial community extension.
+          NOTES
+
+          publish() {
+            local tag="$1" source_sha="$2" title="$3" notes_file="$4" asset_name="$5"
+            local zip_path="$RUNNER_TEMP/release-assets/$asset_name"
+            git archive --format=zip --output="$zip_path" "$source_sha"
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "Release $tag already exists; preserving its published contents."
+            else
+              gh release create "$tag" "$zip_path" \
+                --target "$source_sha" \
+                --title "$title" \
+                --notes-file "$notes_file"
+              echo "Published $tag"
+            fi
+          }
+
+          publish "v1.0.0" "24525bcdb7120263643f8c8cd37ebc855dce9b39" \
+            "v1.0.0 — Original osu! Modding Helper" \
+            "$RUNNER_TEMP/notes-v1.0.0.md" "osu-Modding-Helper-v1.0.0-original-source.zip"
+
+          publish "v1.1.0" "b46a23632074189efb9773b7840a3e3176d5c504" \
+            "v1.1.0 — Modding Workspace Update" \
+            "$RUNNER_TEMP/notes-v1.1.0.md" "osu-Modding-Helper-v1.1.0-extension.zip"
