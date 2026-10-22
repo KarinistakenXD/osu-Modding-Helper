@@ -15,10 +15,12 @@
  const getField=box=>{const nodes=[...message(box)?.querySelectorAll('textarea, [contenteditable="true"], .markdown-field__input')||[]];return nodes.find(n=>n.getClientRects().length>0)||nodes[0]||null;};
  const draft=box=>{const field=getField(box);return field?(field.value??field.innerText??''):'';};
  function findEditor(){return [...document.querySelectorAll('.beatmap-discussion-new')].find(b=>b.getClientRects().length>0)||document.querySelector('.beatmap-discussion-new');}
- function panelFor(box){return message(box)?.querySelector(':scope > .kmh-inline-coach');}
+ function panelFor(box){return box?._kmh111CoachPanel?.isConnected ? box._kmh111CoachPanel : null;}
  function updateActive(box,shown){const toggle=box?.querySelector('.kmh-editor-actions [data-kmh-open-coach]');if(toggle){toggle.setAttribute('aria-expanded',String(shown));toggle.classList.toggle('is-active',shown);}}
  function render(box){
    const panel=panelFor(box);if(!panel||panel.hidden)return;
+   panel.dataset.kmhHasDraft=String(!!draft(box).trim());
+   if(!draft(box).trim()){panel.querySelector('.kmh-coach-live-status').textContent='No draft · cleared';}
    const result=window.KmhCoachCore.analyze(draft(box),{postType:websiteCategory(box)});
    const out=panel.querySelector('.kmh-coach-results');out.replaceChildren();
    const summary=$('div','kmh-coach-summary');summary.append($('strong',null,`${result.covered}/${result.total} reasoning elements found`),$('span',null,`${result.wordCount} words · Pattern-based check, not a quality score`));out.append(summary);
@@ -30,7 +32,7 @@
    out.append(notes);
    if(result.relevantTopics.length){const refs=$('details','kmh-coach-refs');refs.append($('summary',null,'RC topics to verify ('+result.relevantTopics.length+')'));for(const topic of result.relevantTopics){const a=$('a',null,topic.title+' ↗');a.href=topic.url;a.target='_blank';a.rel='noopener noreferrer';refs.append(a,$('p',null,topic.detail));}out.append(refs);}
    panel.querySelector('.kmh-coach-stale').hidden=true;
-   panel.querySelector('.kmh-coach-live-status').textContent='Updated after typing pause';
+   panel.querySelector('.kmh-coach-live-status').textContent=draft(box).trim()?'Updated after typing pause':'No draft · cleared';
    // Show formatting conversion only when it would actually change draft text.
    const converted=window.KmhCoachCore.cleanupMarkdown(draft(box));
    panel.querySelector('.kmh-coach-clean').hidden=converted===draft(box);
@@ -49,7 +51,7 @@
      <div class="kmh-coach-inline-foot"><span>Based on Karin-’s Road to BN (personal teaching edition). Not official RC or gameplay validation.</span><button class="kmh-coach-clean" type="button" hidden>Preview Markdown cleanup</button></div>
      <details class="kmh-coach-guide"><summary>About the Road to BN method</summary><p>Where → Why → How. Compare similar phrases, explain musical or physical impact, and consider alternative repairs. A polished post does not prove a strong diagnosis.</p></details>
      <textarea class="kmh-coach-copy-preview" aria-label="Converted Markdown preview (not the original draft)" readonly hidden></textarea><button type="button" class="kmh-coach-copy-clean" hidden>Copy converted preview</button>`;
-   host.append(panel);
+   document.body.append(panel);box._kmh111CoachPanel=panel;
    panel.querySelector('.kmh-coach-close').addEventListener('click',()=>close(box));
 
    panel.querySelector('.kmh-coach-clean').addEventListener('click',()=>{
@@ -66,18 +68,21 @@
    field?.addEventListener('compositionstart',()=>{composing=true;});
    field?.addEventListener('compositionend',()=>{composing=false;queueReview();});
    field?.addEventListener('input',()=>{if(!composing)queueReview();});
+   box.addEventListener('click',ev=>{const button=ev.target.closest?.('button');if(!button)return;const label=String(button.textContent||'').trim();if(/^(?:Post|Praise|Suggestion|Problem|Note|Respond|Reply)/i.test(label))setTimeout(()=>{if(panel.isConnected&&!panel.hidden&&!draft(box).trim())render(box);},1100);});
    return panel;
  }
- function close(box){const target=box||findEditor();const panel=panelFor(target);if(panel){clearTimeout(scheduleTimers.get(panel));panel.hidden=true;updateActive(target,false);}}
+ function close(box){const target=box||findEditor();const panel=panelFor(target);if(panel){clearTimeout(scheduleTimers.get(panel));window.Kmh111Popover?.close?.();panel.hidden=true;updateActive(target,false);}}
  function open(opener){
    const box=opener?.closest?.('.beatmap-discussion-new')||findEditor();
    if(!box)return false;
    const panel=ensure(box);if(!panel)return false;
    if(!panel.hidden){close(box);return true;}
-   panel.hidden=false;updateActive(box,true);render(box);
+   const anchor=opener?.closest?.('[data-kmh-open-coach]')||box.querySelector('[data-kmh-open-coach]');
+   if(!window.Kmh111Popover?.show?.(anchor,panel,{preferred:'coach',stayOpen:true,onClose:()=>updateActive(box,false)}))return false;
+   updateActive(box,true);render(box);
    // Keep original caret/selection in the native editor instead of stealing focus.
    return true;
  }
- function reconcile(box){const panel=panelFor(box);if(panel&&!panel.hidden)updateActive(box,true);}
+ function reconcile(box){const panel=panelFor(box);if(panel&&!panel.hidden&&!box.isConnected){panel.remove();} else if(panel&&!panel.hidden)updateActive(box,true);}
  window.KmhDraftCoach={open,close,reconcile,analyze:(txt,opts)=>window.KmhCoachCore.analyze(txt,opts)};
 })();

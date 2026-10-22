@@ -55,7 +55,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const readers = {
         fetchDiscussions: () => self.OsuApiClient.fetchDiscussions(request.filters),
         fetchDiscussionPosts: () => self.OsuApiClient.fetchDiscussionPosts(request.discussionId, request.cursor),
-        fetchFavourites: () => self.OsuApiClient.fetchFavourites(request.page)
+        fetchFavourites: () => self.OsuApiClient.fetchFavourites(request.page),
+        fetchPublicUser: () => self.OsuApiClient.fetchPublicUser(request.userId)
     };
     if (Object.prototype.hasOwnProperty.call(readers, request.action)) {
         Promise.resolve().then(readers[request.action]).then(data => sendResponse({ data })).catch(err => sendResponse({ error: err.message, status: err.status, retryAfter: err.retryAfter }));
@@ -63,7 +64,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     // 3. s-ul Image Uploader
-    if (request.action === 'uploadImage') {
+    if (request.action === 'uploadImage' || request.action === 'uploadFile') {
         handleImageUpload(request, sendResponse);
         return true; // Keep message channel open for async
     }
@@ -109,7 +110,7 @@ async function handleImageUpload(request, sendResponse) {
             throw new Error("Invalid response from s-ul");
         }
     } catch (error) {
-        console.error("Modding Helper Image Upload Error:", error);
+        console.error("Modding Helper File Upload Error:", error);
         sendResponse({ error: error.message });
     }
 }

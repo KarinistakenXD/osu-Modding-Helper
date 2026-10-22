@@ -1,0 +1,35 @@
+/* v1.1.1 layout patch: floating UI, never expand the React-owned editor or mapset header. */
+.kmh111-floating {position:fixed!important;z-index:10040!important;box-sizing:border-box!important;max-width:calc(100vw - 20px)!important;overflow-y:auto!important;overscroll-behavior:contain!important;box-shadow:0 12px 30px rgba(0,0,0,.65)!important;scrollbar-width:thin}
+.kmh111-floating[hidden],.kmh111-dl-menu[hidden],.kmh-linked-preview[hidden],.kmh-inline-coach[hidden] {display:none!important}
+.kmh111-dl-menu.kmh111-floating{margin:0!important;min-width:0!important;max-width:calc(100vw - 20px)!important;background:hsl(var(--hsl-b4,200,10%,20%))!important;border:1px solid hsl(var(--hsl-b2,200,10%,30%))!important;border-top:3px solid hsl(var(--hsl-h2,200,50%,45%))!important;border-radius:6px!important;padding:11px!important;font:12px var(--font-default,Torus,Inter,sans-serif)}
+.kmh111-dl-menu .kmh111-dl-grid{display:grid!important;grid-template-columns:1fr!important;gap:8px!important;min-width:0!important;margin-top:9px!important}
+.kmh111-dl-group{min-width:0;padding:9px!important}.kmh111-dl-menu .kmh111-dl-link{padding:7px 9px}.kmh111-dl-menu .kmh111-dl-extract{margin-top:8px}
+.kmh111-dl-toggle{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 31px!important;width:31px!important;min-width:31px!important;height:31px!important;min-height:31px!important;padding:0!important;margin:0!important;border-radius:4px!important;border:1px solid hsl(var(--hsl-h2,200,50%,45%))!important;background:hsl(var(--hsl-h2,200,50%,45%))!important;color:white!important;cursor:pointer!important;font-size:12px!important;line-height:1!important;vertical-align:middle!important}
+.kmh111-dl-toggle:hover,.kmh111-dl-toggle[aria-expanded=true]{filter:brightness(1.15)}.kmh111-dl-toggle:focus-visible{outline:2px solid #8bd7ff;outline-offset:2px}
+.kmh111-download-action-row:has(>.kmh111-dl-toggle){display:flex!important;align-items:stretch!important;gap:3px!important;flex-wrap:nowrap!important}
+.kmh111-download-action-row:has(>.kmh111-dl-toggle)>a.btn-osu-big{flex:1 1 auto;min-width:0;width:auto!important}
+.kmh111-has-download-toggle{display:flex!important;gap:4px!important;align-items:center!important}
+.kmh111-has-download-toggle>.custom-download-btn{flex:1 1 auto!important;min-width:0!important}
+.kmh111-has-download-toggle>.kmh111-dl-toggle{align-self:center!important}
+.kmh-linked-preview.kmh111-floating{display:block;max-height:68vh;margin:0!important;padding:10px!important;border:1px solid hsl(var(--hsl-b2,200,10%,30%));border-top:2px solid hsl(var(--hsl-h2,200,50%,45%));border-radius:5px;background:hsl(var(--hsl-b4,200,10%,20%));color:#fff;font:12px/1.45 var(--font-content,Inter,sans-serif)}
+.kmh-linked-preview.kmh111-floating .kmh-preview-cards{grid-template-columns:1fr}
+.kmh-inline-coach.kmh111-floating{display:block;box-sizing:border-box;max-height:70vh;margin:0!important;padding:0!important;border:1px solid hsl(var(--hsl-b2,200,10%,30%));border-top:2px solid hsl(var(--hsl-h2,200,50%,45%));border-radius:5px;background:hsl(var(--hsl-b4,200,10%,20%));color:#fff;font:12px/1.5 var(--font-content,Inter,sans-serif)}
+.kmh-inline-coach.kmh111-floating .kmh-coach-results{max-height:none;overflow:visible;padding:8px 11px}
+.kmh-inline-coach.kmh111-floating .kmh-coach-inline-head{position:sticky;top:0;z-index:1;padding:9px 11px}
+.kmh-inline-coach.kmh111-floating .kmh-coach-inline-head>div{display:flex;align-items:center;gap:7px}
+.kmh-inline-coach.kmh111-floating .kmh-coach-inline-head span{font-size:10px}
+.kmh-inline-coach.kmh111-floating .kmh-coach-inline-controls{padding:8px 11px 2px}
+.kmh-inline-coach.kmh111-floating .kmh-coach-summary{gap:6px}
+.kmh-inline-coach.kmh111-floating .kmh-coach-finding{padding:7px 9px}
+.kmh-inline-coach.kmh111-floating .kmh-coach-inline-foot{padding:9px 11px}
+.kmh-editor-actions [data-kmh-open-coach]{width:31px!important;height:29px!important;min-width:31px!important;padding:0!important;font-size:12px!important;justify-content:center!important}
+.kmh-editor-actions [data-kmh-open-coach] .kmh-tool-label{display:none!important}
+.kmh-editor-actions .kmh-editor-tool{box-shadow:none!important}
+/* Keep native osu!web post-category colours. Delayed dynamic recolouring caused a flash. */
+/* Metadata pen belongs in the upper-right corner, not below the tags. */
+.beatmapset-info__box--meta:has(>.kmh111-inspect-entry),.beatmapset-info__box:has(>.kmh111-inspect-entry),.beatmapset-header__info:has(>.kmh111-inspect-entry){position:relative!important}
+.kmh111-inspect-entry{position:absolute!important;top:7px!important;right:7px!important;left:auto!important;bottom:auto!important;z-index:4!important;display:inline-grid!important;place-items:center!important;width:30px!important;height:30px!important;min-width:30px!important;padding:0!important;margin:0!important;font-size:12px!important;border-radius:50%!important;background:hsl(var(--hsl-h2,200,50%,45%))!important;border:0!important}
+.kmh111-inspector-grid{grid-template-columns:minmax(105px,.35fr) 1fr}
+@media(max-width:560px){.kmh111-floating{width:calc(100vw - 20px)!important}.kmh111-dl-toggle{width:30px!important;flex-basis:30px!important}.kmh111-dl-heading{gap:4px}}
+
+#custom-rc-panel .kmh111-rc-nav a[data-kmh-rc-external]{display:inline-flex;align-items:center;justify-content:center;padding:5px 10px;border-radius:4px;background:hsl(var(--hsl-h2,200,50%,45%));color:#fff;text-decoration:none;font:700 11px var(--font-default,Torus,sans-serif)}

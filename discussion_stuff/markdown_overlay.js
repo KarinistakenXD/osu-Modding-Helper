@@ -9,7 +9,7 @@
   const states = new WeakMap();
   const tracked = new Set();
   const selector = '.beatmap-discussion-new__message textarea, .beatmap-discussion-post--new-reply textarea, .beatmap-discussion-post__message--editor textarea, .beatmap-discussion-post--reply textarea';
-  const LIMIT = 30000;
+  const LIMIT = 20000; // cap live coloured DOM for responsive typing
   // New Review is a Slate editor, not an ordinary Markdown textarea. Never
   // install a source-colouring overlay anywhere on its page, even if osu! adds
   // a matching textarea for an embed, inline reply, or future editor widget.
@@ -30,34 +30,59 @@
   const blockTokens = /^\s{0,3}(?:#{1,6}[ \t]|>[ \t]?|[-+*][ \t]|\d{1,3}[.)][ \t])/;
   const fenceStart = /^\s{0,3}(`{3,}|~{3,})/;
 
-  function kind(token) {
-    if (/^!?\[/.test(token) || /^https?:\/\//.test(token) || /^<https?:/.test(token)) return 'kmh-md-link';
-    if (/^`/.test(token)) return 'kmh-md-code-token';
-    if (/^\d{2}:\d{2}:\d{3}/.test(token)) return 'kmh-md-timestamp';
-    return 'kmh-md-emphasis';
+  function createPart(parent,value,klass){
+    if(!value)return;
+    const node=create('span',klass);node.textContent=value;parent.append(node);
   }
-  function mark(target, value, type) {
-    const span = create('span', `kmh-md-token ${type}`);
-    span.textContent = value;
-    target.append(span);
-  }
-  function highlightLine(target, line, withinFence) {
-    if (withinFence) { mark(target, line, 'kmh-md-code-token'); return; }
-    const prefix = blockTokens.exec(line);
-    let cursor = 0;
-    if (prefix) {
-      mark(target, prefix[0], 'kmh-md-block');
-      cursor = prefix[0].length;
+  function richToken(parent,value){
+    // Exact byte-preserving partition: only colours and underline may change.
+    // No bold/italic font-metrics changes in the mirror (caret alignment).
+    if(value.startsWith('![')||value.startsWith('[')){
+      const image=value.startsWith('!');const left=image?2:1;
+      const sep=value.lastIndexOf('](');
+      if(sep>=0 && value.endsWith(')')){
+        createPart(parent,value.slice(0,left),'kmh-md-delim');
+        createPart(parent,value.slice(left,sep),image?'kmh-md-image-alt':'kmh-md-link-label');
+        createPart(parent,'](','kmh-md-delim');
+        createPart(parent,value.slice(sep+2,-1),image?'kmh-md-image-url':'kmh-md-link-url');
+        createPart(parent,')','kmh-md-delim');return;
+      }
     }
-    inlineTokens.lastIndex = cursor;
-    let m;
-    while ((m = inlineTokens.exec(line)) !== null) {
-      if (m.index > cursor) target.append(document.createTextNode(line.slice(cursor, m.index)));
-      mark(target, m[0], kind(m[0]));
-      cursor = inlineTokens.lastIndex;
+    if(value.startsWith('https://')||value.startsWith('http://')||value.startsWith('<https://')||value.startsWith('<http://')){
+      createPart(parent,value,'kmh-md-bare-url');return;
     }
-    if (cursor < line.length) target.append(document.createTextNode(line.slice(cursor)));
+    if(/^\d{2}:\d{2}:\d{3}/.test(value)){
+      createPart(parent,value,'kmh-md-timestamp');return;
+    }
+    const delimiters=['***','**','__','~~','``','*','_','`'];
+    for(const d of delimiters){
+      if(value.startsWith(d)&&value.endsWith(d)&&value.length>=d.length*2+1){
+        createPart(parent,d,'kmh-md-delim');
+        createPart(parent,value.slice(d.length,-d.length),d==='~~'?'kmh-md-strike':d.startsWith('`')?'kmh-md-code-content':'kmh-md-emphasis-content');
+        createPart(parent,d,'kmh-md-delim');return;
+      }
+    }
+    createPart(parent,value,'kmh-md-timestamp');
   }
+  function highlightLine(target,line,withinFence){
+    const fence=fenceStart.exec(line);
+    if(withinFence){
+      if(fence){createPart(target,fence[0],'kmh-md-fence-marker');createPart(target,line.slice(fence[0].length),'kmh-md-code-content');}
+      else createPart(target,line,'kmh-md-code-content');
+      return;
+    }
+    const prefix=blockTokens.exec(line);
+    let cursor=0;
+    if(prefix){createPart(target,prefix[0],'kmh-md-block-marker');cursor=prefix[0].length;}
+    inlineTokens.lastIndex=cursor;
+    let match;
+    while((match=inlineTokens.exec(line))!==null){
+      if(match.index>cursor)target.append(document.createTextNode(line.slice(cursor,match.index)));
+      richToken(target,match[0]);cursor=inlineTokens.lastIndex;
+    }
+    if(cursor<line.length)target.append(document.createTextNode(line.slice(cursor)));
+  }
+  function restoreNative(state) { if (!state) return; state.portal.hidden = true; state.field.classList.remove('kmh-md-original-transparent'); }
   function render(state) {
     if (isReviewPage()) { detach(state); return; }
     if (!state.enabled || !state.field.isConnected) return;
@@ -65,8 +90,7 @@
     state.suspended = source.length > LIMIT;
     if (state.suspended) {
       // Never hide native text if preview is too large to process efficiently.
-      state.portal.hidden = true;
-      state.field.classList.remove('kmh-md-original-transparent');
+      restoreNative(state);
       return;
     }
     const fragment = document.createDocumentFragment();
@@ -83,7 +107,6 @@
     }
     if (!source || source.endsWith('\n')) fragment.append(document.createTextNode('\u200b'));
     state.code.replaceChildren(fragment);
-    state.field.classList.add('kmh-md-original-transparent');
     position(state);
     state.portal.scrollTop = state.field.scrollTop;
     state.portal.scrollLeft = state.field.scrollLeft;
@@ -91,10 +114,10 @@
   function position(state) {
     if (isReviewPage()) { detach(state); return; }
     const field = state.field;
-    if (!state.enabled || state.suspended || !field.isConnected || document.hidden) { state.portal.hidden = true; return; }
+    if (!state.enabled || state.suspended || !field.isConnected || document.hidden || !field.value) { restoreNative(state); return; }
     const rect = field.getBoundingClientRect();
     if (rect.width < 2 || rect.height < 2 || rect.bottom <= 0 || rect.top >= innerHeight) {
-      state.portal.hidden = true;
+      restoreNative(state);
       return;
     }
     let left = Math.max(0, rect.left), top = Math.max(0, rect.top);
@@ -112,7 +135,23 @@
       }
       parent = parent.parentElement;
     }
-    if (right <= left || bottom <= top) { state.portal.hidden = true; return; }
+    if (right <= left || bottom <= top) { restoreNative(state); return; }
+    // Fail safe when a modal or another high-priority interface covers the editor.
+    // A body-level portal must never paint over Settings or My Discussions.
+    const overlaySelectors='[aria-modal="true"], .kmh-mod-workspace, #mod-helper-settings-modal';
+    if([...document.querySelectorAll(overlaySelectors)].some(el=>el.getClientRects().length>0 &&
+       getComputedStyle(el).visibility!=='hidden' &&
+       !el.closest('[hidden]'))){
+      restoreNative(state);return;
+    }
+    const midX=Math.max(1,Math.min(innerWidth-1,(left+right)/2));
+    const midY=Math.max(1,Math.min(innerHeight-1,(top+bottom)/2));
+    const atop=document.elementFromPoint(midX,midY);
+    if(atop && atop!==field && !field.contains(atop) &&
+       !atop.closest('.beatmap-discussion-new__message, .beatmap-discussion-post--reply, .beatmap-discussion-post--new-reply')){
+      restoreNative(state);return;
+    }
+
     const css = getComputedStyle(field);
     state.portal.hidden = false;
     state.portal.style.left = `${rect.left}px`;
@@ -120,7 +159,19 @@
     state.portal.style.width = `${rect.width}px`;
     state.portal.style.height = `${rect.height}px`;
     state.portal.style.clipPath = `inset(${Math.max(0, top - rect.top)}px ${Math.max(0, rect.right - right)}px ${Math.max(0, rect.bottom - bottom)}px ${Math.max(0, left - rect.left)}px)`;
-    for (const prop of ['fontFamily','fontSize','fontWeight','fontStyle','lineHeight','letterSpacing','textAlign','textIndent','tabSize','padding','borderWidth','borderStyle','borderRadius','boxSizing','wordBreak','direction']) state.portal.style[prop] = css[prop];
+    for (const prop of ['fontFamily','fontSize','fontWeight','fontStyle','fontVariantLigatures','lineHeight','letterSpacing','textAlign','textIndent','tabSize','padding','borderWidth','borderStyle','borderRadius','boxSizing','wordBreak','direction']) state.portal.style[prop] = css[prop];
+    // Rect dimensions include padding/borders even on content-box textareas.
+    // The portal receives exact outer rect dimensions, so always use border-box.
+    state.portal.style.boxSizing = 'border-box';
+    // Native textarea vertical scrollbars reduce its text wrapping width.
+    const borderSize=(parseFloat(css.borderLeftWidth)||0)+(parseFloat(css.borderRightWidth)||0);
+    const scrollbarWidth=Math.max(0, field.offsetWidth-field.clientWidth-borderSize);
+    state.portal.style.paddingRight=((parseFloat(css.paddingRight)||0)+scrollbarWidth)+'px';
+    // Portal coordinates must match the native textarea. Never make original
+    // text transparent if its mirror drifted or belongs to a clipped field.
+    const painted=state.portal.getBoundingClientRect();
+    if(Math.abs(painted.top-rect.top)>2 || Math.abs(painted.left-rect.left)>2 || Math.abs(painted.width-rect.width)>2 || Math.abs(painted.height-rect.height)>2){restoreNative(state);return;}
+    state.field.classList.add('kmh-md-original-transparent');
   }
   let raf = 0;
   function schedule() {
@@ -152,7 +203,7 @@
     const state = states.get(field) ?? attach(field);
     if (!state) return false;
     state.enabled = typeof forced === 'boolean' ? forced : !state.enabled;
-    state.field.classList.toggle('kmh-md-original-transparent', state.enabled);
+    state.field.classList.remove('kmh-md-original-transparent');
     state.portal.hidden = !state.enabled;
     for (const button of document.querySelectorAll('[data-kmh-toggle-markdown]')) {
       if (button._kmhField !== field) continue;
@@ -189,7 +240,7 @@
     const onInput=()=>{ if(!state.composing) render(state); };
     const onStart=()=>{state.composing=true;};
     const onEnd=()=>{state.composing=false;render(state);};
-    const onScroll=()=>{if(state.enabled){portal.scrollTop=field.scrollTop;portal.scrollLeft=field.scrollLeft;}};
+    const onScroll=()=>{if(state.enabled){portal.scrollTop=field.scrollTop;portal.scrollLeft=field.scrollLeft;position(state);}};
     state.listeners=[['input',onInput],['compositionstart',onStart],['compositionend',onEnd],['scroll',onScroll]];
     for (const [type, listener] of state.listeners) field.addEventListener(type,listener,{passive:type==='scroll'});
     if (typeof ResizeObserver !== 'undefined') { state.resize = new ResizeObserver(schedule); state.resize.observe(field); }
@@ -212,5 +263,6 @@
   window.addEventListener('resize',schedule,{passive:true});
   window.addEventListener('scroll',schedule,{capture:true,passive:true});
   document.addEventListener('visibilitychange',schedule);
+  document.addEventListener('focusin',schedule,true);
   window.KmhMarkdownOverlay={reconcile,attach,toggle,locate,isEnabled:field=>!isReviewPage() && !!states.get(field)?.enabled};
 })();

@@ -1,0 +1,27 @@
+/* v1.1.1 reviewer fixes: UI matches osu!web without rerender-dependent coloration. */
+.kmh111-inspect-entry { position:static!important; inset:auto!important; display:inline-flex!important; align-items:center!important; justify-content:center!important; vertical-align:middle!important; width:24px!important; height:24px!important; min-width:24px!important; margin:0 0 0 7px!important; padding:0!important; font-size:11px!important; border:0!important; border-radius:50%!important; color:#fff!important; background:hsl(var(--hsl-h2,200,50%,45%))!important; }
+.kmh111-inspect-entry:hover {filter:brightness(1.15)}
+.kmh111-dl-menu.kmh111-floating{width:min(365px,calc(100vw - 20px))!important}
+.kmh-inline-coach.kmh111-floating{width:min(360px,calc(100vw - 20px))!important;max-height:75vh!important}
+.kmh111-floating{overscroll-behavior:contain}
+/* Native button behaviour, immediate colour; do not recolour on a delayed JS pass. */
+.beatmap-discussion-new__footer [data-type="mapper_note"] { background:hsl(var(--hsl-purple-3,255,60%,50%))!important; color:white!important }
+.beatmap-discussion-new__footer [data-type="praise"] {background:hsl(var(--hsl-blue-3,200,60%,50%))!important;color:white!important}
+.beatmap-discussion-new__footer [data-type="suggestion"] {background:hsl(var(--hsl-orange-3,35,60%,50%))!important;color:white!important}
+.beatmap-discussion-new__footer [data-type="problem"] {background:hsl(var(--hsl-red-3,0,60%,50%))!important;color:white!important}
+.beatmap-discussion-new__footer [data-type]:disabled{opacity:.48!important}
+.kmh-post-attachments{display:flex;flex-wrap:wrap;gap:5px;max-width:100%;align-items:flex-start;margin-top:5px}
+.kmh-post-attachments .kmh-post-attachment-thumb{display:inline-flex;flex:0 0 auto;max-width:76px;max-height:62px;overflow:hidden;align-items:center;justify-content:center;border-radius:3px;border:1px solid hsl(var(--hsl-b2,200,10%,30%))}
+.kmh-post-attachments .kmh-post-attachment-thumb img{display:block!important;max-width:76px!important;max-height:60px!important;width:auto!important;height:auto!important;object-fit:contain}
+.kmh-post-attachments .kmh-more-attachments{font-size:10px;color:hsl(var(--hsl-l1,200,40%,80%));align-self:center}
+.kmh-post-details .kmh-detail-preview img{max-width:min(95%,440px);max-height:400px;object-fit:contain}
+#custom-rc-panel .kmh-rc-secondary-selectors{display:flex;gap:5px;flex-wrap:wrap;padding:4px 8px;background:hsl(var(--hsl-b4,200,10%,20%))}
+#custom-rc-panel .kmh-rc-secondary-selectors label{font-size:10px;flex:1;min-width:115px;color:#ddd}
+#custom-rc-panel .kmh-rc-secondary-selectors select{display:block;width:100%;padding:5px;background:hsl(var(--hsl-b3,200,10%,25%));color:white;border:1px solid hsl(var(--hsl-b2,200,10%,30%));border-radius:4px}
+#custom-rc-panel .kmh-rc-warning{display:block;padding:5px 10px;font-size:10px;color:#fff0b0;background:hsl(var(--hsl-b4,200,10%,20%))}
+
+.kmh-md-portal{overflow:hidden!important;contain:paint!important;pointer-events:none!important;transform:none!important;z-index:600!important}
+.kmh-md-portal[hidden]{display:none!important}
+.kmh-post-attachments .kmh-post-attachment-thumb[hidden]{display:none!important}
+.kmh-post-attachments .kmh-attachment-unavailable{display:flex!important;min-height:40px;max-width:76px;align-items:center;justify-content:center;background:hsl(var(--hsl-b4,200,10%,20%));color:#9dd9ff;font-size:10px}
+.kmh-post-attachments .kmh-more-attachments{font-size:10px;cursor:pointer;border:0;background:hsl(var(--hsl-b3,200,10%,25%));border-radius:4px;padding:5px 7px;color:white}

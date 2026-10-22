@@ -90,8 +90,9 @@
     state.trigger?.setAttribute('aria-label',`Toggle linked previews (${items.length})`);
     state.trigger?.setAttribute('title',`Toggle linked previews (${items.length})`);
     state.trigger?.classList.toggle('kmh-has-links',items.length>0);
-    state.root.hidden=!state.visible||!items.length;
+    state.root.hidden=!state.visible;
     if(state.root.hidden)return;
+    state.root.querySelector('.kmh111-empty-preview').hidden=items.length>0;
     state.root.querySelector('.kmh-preview-count').textContent=`${items.length} link${items.length===1?'':'s'} detected`;
     const grid=state.root.querySelector('.kmh-preview-cards');
     const fingerprint=items.map(x=>x.href+':'+x.label).join('|');
@@ -101,26 +102,29 @@
   }
   function toggleState(state,force){
     if(!state)return;
-    state.visible=typeof force==='boolean'?force:!state.visible;
+    const next=typeof force==='boolean'?force:!window.Kmh111Popover?.isOpen?.(state.root);
+    if(next){render(state);window.Kmh111Popover?.show?.(state.trigger,state.root,{preferred:'side',onClose:()=>{state.visible=false;}});state.visible=true;render(state);}
+    else {state.visible=false;window.Kmh111Popover?.close?.();render(state);}
     state.trigger?.setAttribute('aria-pressed',String(state.visible));
-    render(state);
   }
   function create(field,host,trigger,compact){
     let state=store.get(field);
     if(state?.root.isConnected){state.trigger=trigger||state.trigger;return state;}
     const root=make('section','kmh-linked-preview'+(compact?' kmh-linked-preview--reply':''));
     root.hidden=true;root.setAttribute('aria-label','Link and attachment previews');
-    root.innerHTML='<div class="kmh-preview-head"><strong><i class="fas fa-paperclip" aria-hidden="true"></i> Linked attachments</strong><span class="kmh-preview-count"></span><button type="button" class="kmh-preview-source-toggle">Toggle editor highlighting</button><button type="button" class="kmh-preview-hide" aria-label="Hide previews">×</button></div><p class="kmh-preview-privacy">Direct images are previewed at their original URL. Websites use their favicon if available; no website HTML is fetched.</p><div class="kmh-preview-cards"></div><pre class="kmh-preview-source" hidden></pre>';
-    host.append(root);
-    state={field,root,trigger,visible:true,timer:null,composing:false,lastItems:''};store.set(field,state);
+    root.innerHTML='<div class="kmh-preview-head"><strong><i class="fas fa-paperclip" aria-hidden="true"></i> Linked attachments</strong><span class="kmh-preview-count"></span><button type="button" class="kmh-preview-hide" aria-label="Hide previews">×</button></div><p class="kmh-preview-privacy">Direct images are previewed at their original URL. Websites use their favicon if available; no website HTML is fetched.</p><div class="kmh111-empty-preview">No links to preview. Paste an image URL, attachment or website link to see its card here.</div><div class="kmh-preview-cards"></div><pre class="kmh-preview-source" hidden></pre>';
+    document.body.append(root);
+    state={field,root,trigger,visible:false,timer:null,composing:false,lastItems:''};store.set(field,state);
     root.querySelector('.kmh-preview-hide').onclick=()=>toggleState(state,false);
-    root.querySelector('.kmh-preview-source-toggle').onclick=()=>{
-      // Highlight the ORIGINAL editable textarea; don't show a disconnected copy.
-      window.KmhMarkdownOverlay?.toggle?.(field);
-    };
     field.addEventListener('compositionstart',()=>{state.composing=true;});
     field.addEventListener('compositionend',()=>{state.composing=false;queue(state,200);});
     field.addEventListener('input',()=>{if(!state.composing)queue(state,350);});
+    // React may clear the field after posting without emitting an input event.
+    field.closest('.beatmap-discussion-new, .beatmap-discussion-post')?.addEventListener('click',ev=>{
+      if(ev.target.closest('button[type=submit], button')?.textContent?.trim().match(/^(?:praise|suggestion|problem|note|respond|reply|post)/i)) {
+        setTimeout(()=>{if(state.field.isConnected)render(state);},900);
+      }
+    });
     render(state);
     return state;
   }

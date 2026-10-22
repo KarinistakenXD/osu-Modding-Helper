@@ -30,13 +30,13 @@ async function injectMetadataBox() {
     metaBlock.innerHTML = `
         <div class="kmh-metadata-layout">
             <div class="kmh-metadata-details">
-                <div class="custom-metadata-line"><strong>Source:</strong> <code class="custom-tags-code kmh-source-value" id="custom-source-loader">${spinner}</code><button type="button" class="kmh-metadata-copy custom-copy-button custom-copy-button--source btn-osu-big--disabled" id="copy-source-genre" title="Copy source and genre" aria-label="Copy source and genre" disabled><span class="kmh-copy-label">Copy</span><i class="fas fa-copy" aria-hidden="true"></i></button></div>
+                <div class="custom-metadata-line"><strong>Source:</strong> <code class="custom-tags-code kmh-source-value" id="custom-source-loader">${spinner}</code><button type="button" class="btn-osu-big kmh-metadata-copy custom-copy-button custom-copy-button--source btn-osu-big--disabled" id="copy-source-genre" title="Copy source and genre" aria-label="Copy source and genre" disabled><span class="kmh-copy-label">Copy</span><i class="fas fa-copy" aria-hidden="true"></i></button></div>
                 <div class="custom-metadata-line"><strong>Genre:</strong> <code class="custom-tags-code kmh-genre-value" id="custom-genre-loader">${spinner}</code><span class="custom-metadata-separator">/</span><code class="custom-tags-code kmh-genre-value" id="custom-language-loader">${spinner}</code><span class="kmh-meta-status" role="status"></span></div>
             </div>
 
             <div class="kmh-metadata-tags">
                 <div class="kmh-tags-content">
-                    <div class="kmh-tags-line"><strong>Tags:</strong> <code class="custom-tags-code kmh-tags-value" id="custom-tags-loader">${spinner}</code></div><button type="button" class="kmh-metadata-copy custom-copy-button btn-osu-big--disabled" id="copy-tags" title="Copy tags" aria-label="Copy tags" disabled><span class="kmh-copy-label">Copy</span><i class="fas fa-copy" aria-hidden="true"></i></button>
+                    <div class="kmh-tags-line"><strong>Tags:</strong> <code class="custom-tags-code kmh-tags-value" id="custom-tags-loader">${spinner}</code></div><button type="button" class="btn-osu-big kmh-metadata-copy custom-copy-button btn-osu-big--disabled" id="copy-tags" title="Copy tags" aria-label="Copy tags" disabled><span class="kmh-copy-label">Copy</span><i class="fas fa-copy" aria-hidden="true"></i></button>
                 </div>
             </div>
         </div>
@@ -60,7 +60,7 @@ async function injectMetadataBox() {
         const genreSpan = metaBlock.querySelector('#custom-genre-loader');
         const languageSpan = metaBlock.querySelector('#custom-language-loader');
         
-        if (sourceSpan) sourceSpan.textContent = source;
+        if (sourceSpan) { sourceSpan.textContent = source; sourceSpan.title = source; }
         if (tagsSpan) tagsSpan.textContent = tags;
         if (genreSpan) genreSpan.textContent = genre;
         if (languageSpan) languageSpan.textContent = lang;
@@ -251,8 +251,15 @@ function updateSelectedBeatmapStats() {
     };
     addStat('hp','HP Drain',hpDrain);
     addStat('od','Overall Difficulty',od);
+    const mode=String(targetMap.mode||'osu');
+    const cs=Number(targetMap.cs??targetMap.circle_size);
+    const ar=Number(targetMap.ar??targetMap.approach_rate);
+    if(mode!=='mania'){
+        if(Number.isFinite(cs))addStat('cs','Circle Size',cs);
+        if(Number.isFinite(ar))addStat('ar','Approach Rate',ar);
+    }
     // Avoid re-rendering when a MutationObserver or page navigation rechecks the same map.
-    const fingerprint = `${targetMap.id}:${display(hpDrain)}:${display(od)}`;
+    const fingerprint = `${targetMap.id}:${display(hpDrain)}:${display(od)}:${mode}:${display(cs)}:${display(ar)}`;
     if (statsRow.dataset.kmhFingerprint !== fingerprint) {
         statsRow.dataset.kmhFingerprint = fingerprint;
         statsRow.replaceChildren(strip);

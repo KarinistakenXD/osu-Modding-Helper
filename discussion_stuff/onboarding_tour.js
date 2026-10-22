@@ -3,6 +3,8 @@
   'use strict';
   const KEY='kmhOnboardingCompletedV147';
   const steps=[
+    {selector:'.kmh111-dl-toggle, .custom-download-btn',title:'Download and extract media',body:'Keep the official download button or expand options for full/no-video sets, mirror alternatives, background and cover images, metadata JSON/TXT, or safe extraction from your own .osz.'},
+    {selector:'.kmh111-inspect-entry, .custom-metadata-block',title:'Metadata inspector',body:'On the main mapset page, Inspect metadata shows romanised and original names, source and full tags. Host and guest-difficulty ownership are distinguished from unclassified contributor names.'},
     {selector:'.custom-metadata-block',title:'Metadata and account status',body:'Source and tags are available from the page. Genre and language use the osu! API; if they cannot load, this area explains whether you need to connect or retry.'},
     {selector:'.beatmap-discussion-new__toolbar',title:'Native editor and helper tools',body:'The original osu! Markdown formatting buttons are kept. Extension features appear in the same formatting area without replacing the editor.'},
     {selector:'[data-kmh-open-preview]',title:'Linked previews',body:'Paste a Markdown image, file link or website URL. The extension shows read-only attachment cards and an optional syntax-highlighted source view. Only image thumbnails load from their hosts.'},
@@ -10,7 +12,7 @@
     {selector:'.beatmap-discussion-new__message-area',title:'Paste URLs and drop screenshots',body:'Paste a standalone screenshot or direct image URL and it becomes a Markdown image link. Drag in or paste an actual image file to upload it through your configured s-ul.eu key. No image is uploaded without your action.'},
     {selector:'.kmh-reply-tools',title:'Reviews and replies',body:'When a review or reply editor is open, its own Preview links and Coach actions appear beside that editor. Both read the current text without posting for you.'},
     {selector:'[data-kmh-open-coach]',title:'Draft Coach',body:'Open a local reasoning check based on Karin’s Road to BN guide. When open, it updates after you pause typing. It never submits or silently edits a post.'},
-    {selector:'[data-kmh-open-rc]',title:'Ranking Criteria',body:'Quick access to the relevant osu! Ranking Criteria. The guide and Coach are educational; always verify actual requirements against the current official rules.'},
+    {selector:'[data-kmh-open-rc]',title:'Ranking Criteria topics',body:'Quick access to the relevant osu! Ranking Criteria. The guide and Coach are educational; always verify actual requirements against the current official rules.'},
     {selector:'[data-kmh-open-finder]',title:'My discussions',body:'Find your discussion history and follow-ups. Personal history requires an osu! OAuth connection, which you can configure in Settings.'},
     {selector:'[data-kmh-open-settings]',title:'Settings and connections',body:'Choose enabled features, connect your osu! account, and configure optional s-ul.eu image uploads. You can replay this tour any time from Settings or the popup.'}
   ];

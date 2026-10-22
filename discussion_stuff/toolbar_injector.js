@@ -87,7 +87,9 @@ function injectToolbar() {
         const md = makeButton('Highlight Markdown in editor','fa-highlighter',b=>{const textarea=b.closest('.beatmap-discussion-new')?.querySelector('.beatmap-discussion-new__message textarea');if(textarea)window.KmhMarkdownOverlay?.toggle?.(textarea);},'markdown');
         md.setAttribute('data-kmh-toggle-markdown','');md._kmhField=box.querySelector('.beatmap-discussion-new__message textarea');
         const coach = makeButton('Toggle Draft Coach','fa-clipboard-check',b=>window.KmhDraftCoach?.open?.(b),'coach','Coach');
+        coach.classList.add('btn-osu-big','kmh-editor-action-large');
         const settings = makeButton('Modding Helper Settings','fa-cog',b=>toggleModHelperSettings(b),'settings','Settings');
+        settings.classList.add('btn-osu-big','kmh-editor-action-large');
         finder.hidden = !isModHelperFeatureEnabled('modWorkspace');
         book.hidden = !isModHelperFeatureEnabled('rcBook');
         actions.append(finder,book,preview,md,coach,settings);
@@ -127,7 +129,7 @@ function toggleModHelperSettings(opener) {
         </nav><div class="kmh-settings-content">
           ${Object.entries(sections).map(([id,s])=>`<section data-settings-section="${id}" class="kmh-settings-section"><div class="kmh-settings-section-heading"><span class="kmh-eyebrow">PREFERENCES</span><h3>${s.name}</h3><p>${s.description}</p></div>
           <div class="kmh-feature-list">${s.features.map(([key,title,description])=>`<label class="kmh-feature-row"><div class="kmh-feature-copy"><strong>${title}</strong><small>${description}</small></div><input type="checkbox" data-feature="${key}" ${isModHelperFeatureEnabled(key)?'checked':''}><span class="kmh-switch" aria-hidden="true"></span></label>`).join('')}</div>
-          ${id==='integrations'?`<div class="kmh-settings-integration kmh-auth-settings"><h4><i class="fas fa-user-check"></i> Your osu! account</h4><p>Connect to unlock My discussions, open follow-ups, favourites and thread activity. Local drafts and Ranking Criteria work without signing in.</p><p class="kmh-trust-note">OAuth token exchange uses the existing third-party Cloudflare Worker configured in this extension, not an osu!-operated endpoint. Connect only if you trust its operator.</p><div class="kmh-integration-controls"><button type="button" id="mod-helper-osu-connect" class="kmh-primary-button">Connect osu! account</button><span id="mod-helper-osu-status" role="status">Checking connection…</span></div></div>
+          ${id==='integrations'?`<div class="kmh-settings-integration kmh-auth-settings"><h4><i class="fas fa-user-check"></i> Your osu! account</h4><p>Connect to unlock My discussions and thread activity. Local drafts and Ranking Criteria work without signing in.</p><p class="kmh-trust-note">OAuth token exchange uses the existing third-party Cloudflare Worker configured in this extension, not an osu!-operated endpoint. Connect only if you trust its operator.</p><div class="kmh-integration-controls"><button type="button" id="mod-helper-osu-connect" class="kmh-primary-button">Connect osu! account</button><span id="mod-helper-osu-status" role="status">Checking connection…</span></div></div>
           <div class="kmh-settings-integration"><h4>s-ul.eu image uploading</h4>
           <p>Optional image paste / drag-and-drop into osu!'s discussion editor. Images are uploaded to your s-ul.eu account and inserted as Markdown. Ordinary text remains native.</p>
           <label for="modal-sul-key">s-ul.eu API key</label><input type="password" id="modal-sul-key" autocomplete="off" placeholder="Paste your s-ul.eu API key">

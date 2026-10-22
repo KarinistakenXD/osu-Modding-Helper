@@ -1,0 +1,52 @@
+/* v1.1.1 R6: follow osu!web rather than replacing React-owned controls. */
+/* The Source inspector shares osu!'s native btn-circle visual hierarchy. */
+.beatmapset-info__row:has(>button.kmh111-inspect-entry){position:relative!important;padding-right:70px!important;min-height:31px!important}
+.beatmapset-info__row>button.kmh111-inspect-entry.btn-circle{
+  position:absolute!important;inset:0 37px auto auto!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  box-sizing:border-box!important;margin:0!important;padding:0!important;
+  border:0!important;border-radius:100%!important;
+  width:30px!important;height:30px!important;min-width:30px!important;
+  background:transparent!important;color:hsl(var(--hsl-c1))!important;
+  box-shadow:none!important;font-size:12px!important;line-height:1!important;
+  z-index:2!important;cursor:pointer!important;
+}
+.beatmapset-info__row>button.kmh111-inspect-entry .btn-circle__content{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  color:inherit!important;width:100%!important;height:100%!important;
+}
+.beatmapset-info__row>button.kmh111-inspect-entry:hover{background:hsl(var(--hsl-b2))!important}
+/* Do not add a second Download action to the narrow beatmapset Info hero. */
+.beatmapset-header .kmh111-dl-toggle,.beatmapset-header__main .kmh111-dl-toggle,
+.beatmapset-info__content .kmh111-dl-toggle{display:none!important}
+/* osu!web's own disabled styles trump custom discussion-type accents. */
+.beatmap-discussion-new__footer [data-type].btn-osu-big--disabled,
+.beatmap-discussion-new__footer button[data-type]:disabled,
+.beatmap-discussion-new__footer [data-type][aria-disabled="true"]{
+  background:hsl(var(--hsl-b2))!important;color:hsl(var(--hsl-f1))!important;
+  opacity:.62!important;filter:none!important;text-shadow:none!important;box-shadow:none!important;
+  cursor:not-allowed!important;
+}
+.beatmap-discussion-new__footer [data-type].btn-osu-big--disabled *,
+.beatmap-discussion-new__footer button[data-type]:disabled *,
+.beatmap-discussion-new__footer [data-type][aria-disabled="true"] *{color:inherit!important;text-shadow:none!important}
+/* A genuinely new update is separated from older discussions without hiding them. */
+.kmh-unread-section-label,.kmh-seen-section-label{
+  margin:10px 0 7px!important;display:flex!important;align-items:center;gap:12px;
+  letter-spacing:.07em;font:700 11px/1.5 var(--font-default,Torus,Inter,sans-serif);
+}
+.kmh-unread-section-label{color:#fb738d!important}
+.kmh-seen-section-label{color:hsl(var(--hsl-l2))!important}
+.kmh-unread-section-label:before,.kmh-unread-section-label:after{content:"";height:2px;flex:1;background:#bd4c69}
+.kmh-seen-section-label:before,.kmh-seen-section-label:after{content:"";height:1px;flex:1;background:hsl(var(--hsl-b2))}
+.kmh-draft-explanation{font:12px/1.5 var(--font-default,Torus,Inter,sans-serif);color:hsl(var(--hsl-l1));margin:0 0 15px}
+/* Group badges remain adjacent to username rather than floating in the comment body. */
+.comment__row--header>.kmh111-role--public{vertical-align:middle;margin:0 5px 0 0}
+.comment__row--header>.comment__row-item+.kmh111-role--public{margin-left:5px}
+.kmh-nearby-excerpt{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+/* Prevent a dim loading indicator from looking like an active successful upload. */
+.kmh-upload-drop-overlay[hidden]{display:none!important}
+@media (max-width:600px){
+ .beatmapset-info__row:has(>button.kmh111-inspect-entry){padding-right:66px!important}
+ .kmh-unread-section-label,.kmh-seen-section-label{font-size:10px}
+}

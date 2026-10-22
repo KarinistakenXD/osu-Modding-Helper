@@ -16,7 +16,7 @@
     let searchQuery = '', sortMode = 'updated', loadTarget = 50, dateFrom = '', dateTo = ''; 
     const discussionRoute = () => /^\/beatmapsets\/\d+\/discussion(?:\/|$)/.test(location.pathname);
     function closeWorkspace() { if (!overlay || overlay.hidden) return; overlay.hidden = true; document.body.style.overflow = overlay.kmhPreviousOverflow || ''; returnFocus?.focus(); }
-    function openWorkspace(id, opener) { ensurePanel(); if (!overlay || !isModHelperFeatureEnabled('modWorkspace')) return; view = id; returnFocus = opener; if (overlay.hidden) overlay.kmhPreviousOverflow = document.body.style.overflow; overlay.hidden = false; document.body.style.overflow = 'hidden'; loadView(false); panel.querySelector('[data-close]').focus(); }
+    function openWorkspace(id, opener) { if(['followups','map','favourites'].includes(id))id='mine';ensurePanel(); if (!overlay || !isModHelperFeatureEnabled('modWorkspace')) return; view = id; returnFocus = opener; if (overlay.hidden) overlay.kmhPreviousOverflow = document.body.style.overflow; overlay.hidden = false; document.body.style.overflow = 'hidden'; loadView(false); panel.querySelector('[data-close]').focus(); }
     const readActions = new Set(['getAuthStatus', 'fetchProfile', 'fetchDiscussions', 'fetchDiscussionPosts', 'fetchFavourites']);
     const request = (message, retried = false) => new Promise((resolve, reject) => {
         try { chrome.runtime.sendMessage(message, response => {
@@ -198,51 +198,80 @@
         details.append(preview);return details;
     }
 
-    function postAttachmentImage(raw) {
-        if(typeof raw!=='string')return null;
-        const match=raw.match(/!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)|\[img\](https?:\/\/[^\s\[]+)\[\/img\]|(https?:\/\/[^\s<>'"\])]+\.(?:png|jpe?g|gif|webp|avif)(?:\?[^\s]*)?)/i);
-        const imageLike = match || raw.match(/(https?:\/\/(?:osu\.ppy\.sh\/ss\/\d+(?:\/[a-z0-9]+)?|(?:[^\s/]+\.)?s-ul\.eu\/[^\s<>'"\])]+))/i);
-        if(!imageLike)return null;
-        try {
-            const u=new URL(match ? (match[1]||match[2]||match[3]) : imageLike[1]);
-            return u.protocol==='https:'&&!u.username&&!u.password&&u.href.length<=2400?u.href:null;
-        } catch{return null;}
+    function postAttachmentImages(raw) {
+        if (typeof raw !== 'string' || !raw) return [];
+        const out=[],used=new Set();
+        // Scan long posts and all supported embed formats, not just the first
+        // image. Hard cap prevents malicious posts from creating hundreds of DOM nodes.
+        const regex=/!\[[^\]\n]{0,400}\]\((https?:\/\/[^\s)]+)\)|\[img\](https?:\/\/[^\s\[]+)\[\/img\]|(https?:\/\/[^\s<>"'`\])]+\.(?:png|jpe?g|gif|webp|avif)(?:\?[^\s<>"']*)?)|(https?:\/\/osu\.ppy\.sh\/ss\/\d+(?:\/[a-z0-9]+)?)|(https?:\/\/(?:[^\s/]+\.)?s-ul\.eu\/[^\s<>"'`\])]+)|<img[^>]{0,1000}?src=["'](https?:\/\/[^"']+)["']/gi;
+        for(const m of raw.matchAll(regex)) {
+            if(out.length>=24)break;
+            try {
+                const url=new URL(m[1]||m[2]||m[3]||m[4]||m[5]||m[6]);
+                if(url.protocol!=='https:'||url.username||url.password||url.href.length>2400||used.has(url.href))continue;
+                used.add(url.href);out.push(url.href);
+            } catch {}
+        }
+        return out;
     }
-    function postAttachmentThumb(raw) {
-        const url=postAttachmentImage(raw);if(!url)return null;
-        const a=el('a',null,'kmh-post-attachment-thumb');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.title='Open attached image in new tab';a.setAttribute('aria-label','Open image attached to this discussion');
-        const image=el('img');image.src=url;image.loading='lazy';image.referrerPolicy='no-referrer';image.alt='Attached modpost image';
-        image.addEventListener('error',()=>a.remove(),{once:true});a.append(image);return a;
+    function postAttachmentGallery(raw) {
+        const urls=postAttachmentImages(raw);if(!urls.length)return null;
+        const gallery=el('div',null,'kmh-post-attachments');gallery.setAttribute('aria-label',`${urls.length} attached image links`);
+        for(let i=0;i<urls.length;i++) {
+            const url=urls[i],a=el('a',null,'kmh-post-attachment-thumb');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.title='Open original attached image';a.setAttribute('aria-label',`Open attached image ${i+1}`);
+            if(i>=4)a.hidden=true;
+            const img=el('img');img.src=url;img.loading=i<4?'eager':'lazy';img.referrerPolicy='no-referrer';img.alt='Discussion attachment';
+            // Third-party hosts can refuse previewing. Keep the original link
+            // as a visible fallback rather than silently removing the attachment.
+            img.addEventListener('error',()=>{img.remove();a.textContent='Image ↗';a.classList.add('kmh-attachment-unavailable');},{once:true});
+            a.append(img);gallery.append(a);
+        }
+        if(urls.length>4){const more=button(`+${urls.length-4} images`,()=>{
+            const hidden=gallery.dataset.expanded!=='true';gallery.dataset.expanded=String(hidden);
+            gallery.querySelectorAll('.kmh-post-attachment-thumb').forEach((n,i)=>n.hidden=i>=4&&!hidden);
+            more.textContent=hidden?'Show fewer images':`+${urls.length-4} images`;
+        },'kmh-more-attachments');gallery.append(more);}
+        return gallery;
+    }
+    function imageUrl(value,allowedHosts) {
+        if(typeof value!=='string')return null;
+        try { const url=new URL(value);return url.protocol==='https:' && allowedHosts.has(url.hostname) ? url.href : null; }catch{return null;}
     }
     function accountUI() {
-        const account = panel.querySelector('[data-account]'); account.replaceChildren();
-        const accountStrip = panel.querySelector('.kmh-account-strip');
-        accountStrip.classList.toggle('kmh-needs-auth', !profile);
+        const account=panel.querySelector('[data-account]');account.replaceChildren();
+        const strip=panel.querySelector('.kmh-account-strip');
+        const shell=panel.querySelector('.kmh-profile-shell');
+        strip.classList.toggle('kmh-needs-auth',!profile);
+        shell.classList.toggle('kmh-has-profile',!!profile);
+        shell.style.removeProperty('--kmh-cover-image');
+        const hosts=new Set(['assets.ppy.sh','osu.ppy.sh','a.ppy.sh']);
         if (!profile) {
-            const heading=el('strong','Connect osu! to unlock your modding workspace','kmh-onboarding-title');
-            const details=el('div','Track your discussions and replies, see unresolved issues, and review favourite mapsets. Ranking Criteria and local drafts do not require sign-in.','kmh-onboarding-desc');
-            const privacy=el('small','Requires public + identify access. This build uses the existing third-party token exchange proxy; connect only if you trust it.','kmh-onboarding-note');
-            account.append(heading,details,privacy);
+            account.append(el('strong','Connect osu! to unlock your modding workspace','kmh-onboarding-title'),
+              el('div','Read your discussions and recent replies. Draft recovery and Ranking Criteria work without signing in.','kmh-onboarding-desc'),
+              el('small','Authentication uses the configured third-party token exchange proxy. Connect only if you trust it.','kmh-onboarding-note'));
         } else {
-            account.append(el('strong',`${profile.username} · osu! connected`,'kmh-account-welcome'));
-            const groups = el('span', null, 'kmh-account-groups');
-            const seen = new Set();
-            for (const group of Array.isArray(profile.groups) ? profile.groups : []) {
-                if (!group || group.identifier === 'default' || !group.name || seen.has(group.id ?? group.name)) continue;
-                seen.add(group.id ?? group.name);
-                const badge = el('span', group.name, 'kmh-account-group');
-                for(const mode of Array.isArray(group.playmodes)?group.playmodes:[]){
-                    if(!['osu','taiko','fruits','mania'].includes(mode))continue;
-                    const symbol=icon(`fal fa-extra-mode-${mode}`);symbol.title=mode==='fruits'?'catch':mode;badge.append(symbol);
-                }
-                if (/^#[\da-f]{6}$/i.test(group.colour || '')) badge.style.borderColor = group.colour;
-                groups.append(badge);
+            const cover=imageUrl(profile.cover?.url||profile.cover?.custom_url||profile.cover_url,hosts);
+            if(cover)shell.style.setProperty('--kmh-cover-image',`url(${JSON.stringify(cover)})`);
+            const avatar=imageUrl(profile.avatar_url,hosts);
+            const identity=el('div',null,'kmh-profile-identity');
+            if(avatar){const pic=el('img');pic.className='kmh-profile-avatar';pic.src=avatar;pic.alt='';pic.referrerPolicy='no-referrer';identity.append(pic);}
+            const stack=el('div',null,'kmh-profile-info');
+            const profileLink=el('a',String(profile.username||`User ${profile.id}`),'kmh-profile-name');
+            if(Number.isSafeInteger(Number(profile.id))&&Number(profile.id)>0){profileLink.href=`https://osu.ppy.sh/users/${Number(profile.id)}`;profileLink.target='_blank';profileLink.rel='noopener noreferrer';}
+            else{profileLink.removeAttribute('href');}
+            stack.append(profileLink,el('span','osu! connected','kmh-profile-status kmh111-connected'));
+            const badges=el('div',null,'kmh-profile-badges');const groupApi=window.KmhGroupBadges;
+            for(const group of (Array.isArray(profile.groups)?profile.groups:[]).filter(g=>groupApi?.eligible?.(g)).slice(0,6)){
+                const badge=groupApi.make(group);if(badge)badges.append(badge);
             }
-            if (profile.is_supporter) groups.append(el('span', 'osu!supporter', 'kmh-account-group'));
-            if (groups.childElementCount) account.append(groups);
+            if(profile.is_supporter===true){const supporter=el('span',' osu!supporter','kmh-profile-supporter');supporter.prepend(icon('fas fa-heart'));badges.append(supporter);}
+            if(badges.childElementCount)stack.append(badges);
+            identity.append(stack);account.append(identity);
         }
         const control=panel.querySelector('[data-connect]');
-        control.textContent = profile ? 'Disconnect' : 'Connect osu! account ↗';
+        control.classList.toggle('kmh111-connected',!!profile);
+        control.classList.toggle('kmh111-disconnected',!profile);
+        control.textContent=profile?'Disconnect':'Connect osu! account ↗';
         control.classList.toggle('kmh-primary-button',!profile);
         control.classList.toggle('kmh-outline-button',!!profile);
     }
@@ -269,7 +298,6 @@
         const query = searchQuery.trim().toLocaleLowerCase();
         const filtered = items.filter(d => {
             if (!categories.has(d.message_type)) return false;
-            if (view === 'followups' && (!['problem','suggestion'].includes(d.message_type) || (d.resolved && !activityKind(d)))) return false;
             if (filter === 'unresolved' && d.resolved || filter === 'resolved' && !d.resolved || filter === 'unread' && !activityKind(d)) return false;
             // Date filters are explicitly local to pages retrieved; the API does not expose a created-at range filter.
             const created=String(d.created_at||'').slice(0,10);
@@ -280,7 +308,7 @@
             return [set.artist, set.title, d.beatmap?.version, d.message_type, messageOf(d), d.id, d.beatmapset_id].some(value => String(value ?? '').toLocaleLowerCase().includes(query));
         });
         const scoreDate = d => Date.parse(sortMode === 'created' ? d.created_at : d.last_post_at || d.updated_at || d.created_at) || 0;
-        filtered.sort((a,b) => sortMode === 'oldest' ? scoreDate(a) - scoreDate(b) : scoreDate(b) - scoreDate(a));
+        filtered.sort((a,b) => sortMode === 'oldest' ? scoreDate(a) - scoreDate(b) : sortMode==='updated' ? ((!!activityKind(b))-(!!activityKind(a))) || (scoreDate(b)-scoreDate(a)) : scoreDate(b)-scoreDate(a));
         const unresolved = items.filter(d => !d.resolved).length;
         const recheck = items.filter(d => !!activityKind(d)).length;
         const counts = panel.querySelector('[data-counts]');
@@ -297,7 +325,13 @@
             empty.append(el('i', null, 'fas fa-search'), el('strong', items.length ? 'No matching discussions' : 'Nothing to show yet'), el('p', items.length ? 'Try changing the search, category or status filter.' : 'This section has no discussions in the loaded results.'));
             results.append(empty); return;
         }
+        let unreadSeparatorShown=false,seenSeparatorShown=false;
         for (const d of filtered) {
+            if(sortMode==='updated') {
+                const unread=!!activityKind(d);
+                if(unread && !unreadSeparatorShown){results.append(el('div','NEW UPDATES','kmh-unread-section-label'));unreadSeparatorShown=true;}
+                if(!unread && unreadSeparatorShown && !seenSeparatorShown){results.append(el('div','PREVIOUSLY SEEN','kmh-seen-section-label'));seenSeparatorShown=true;}
+            }
             const row = el('article', null, 'kmh-mod-row kmh-mod-post-card');
             row.dataset.kmhDiscussionId = String(d.id);
             const set = d.beatmapset || d.beatmap?.beatmapset || {};
@@ -370,7 +404,7 @@
             const expand=fullPost(d);
             actions.append(link,permalink,repliesButton);
             const timestamps=buildTimestamps(messageOf(d));
-            const imageThumb=postAttachmentThumb([messageOf(d),...(Array.isArray(d.posts)?d.posts.map(p=>p?.message||''):[])].join('\n'));
+            const imageThumb=postAttachmentGallery([messageOf(d),...(Array.isArray(d.posts)?d.posts.map(p=>p?.message||''):[])].join('\n'));
             body.append(head,destination,message);
             if(timestamps)body.append(timestamps);
             if(imageThumb)body.append(imageThumb);
@@ -382,15 +416,15 @@
         if (!panel) return;
         const turn=++generation, results=panel.querySelector('[data-results]'), load=panel.querySelector('[data-more]');
         panel.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===view)));
-        panel.querySelector('[data-results-label]').textContent=({followups:'OPEN FOLLOW-UPS',mine:'MY DISCUSSIONS',map:'CURRENT MAPSET',favourites:'FAVOURITES',drafts:'DRAFT RECOVERY'})[view]||'DISCUSSION RESULTS';
+        panel.querySelector('[data-results-label]').textContent=({mine:'MY DISCUSSIONS · RECENT UPDATES',drafts:'DRAFT RECOVERY'})[view]||'DISCUSSION RESULTS';
         load.hidden=true;
         for(const key of ['filter','sort','search','date-from','date-to','load-target']) {
             const n=panel.querySelector(`[data-${key}]`);if(!n)continue;
             const hide=['favourites','drafts'].includes(view);
             (key==='search'?n.parentElement:key==='date-from'||key==='date-to'||key==='load-target'?n.closest('label'):n).hidden=hide;
         }
-        panel.querySelector('[data-categories]').hidden=!['mine','followups'].includes(view);
-        panel.querySelector('.kmh-review-checkpoint').hidden=view!=='map';
+        panel.querySelector('[data-categories]').hidden=view!=='mine';
+        panel.querySelector('.kmh-review-checkpoint').hidden=true;
         if(view==='drafts') {cursor=null;allLoaded=true;discussions=[];panel.querySelector('[data-coverage]').textContent='';panel.querySelector('[data-counts]').replaceChildren();renderDrafts();return;}
         if(!profile) {discussions=[];cursor=null;panel.querySelector('[data-coverage]').textContent='';panel.querySelector('[data-counts]').replaceChildren();results.replaceChildren();const empty=el('div',null,'kmh-empty-state kmh-auth-empty');empty.append(el('i',null,'fas fa-lock'),el('strong','Connect your osu! account'),el('p','Authorize osu! to load your personal discussions and history. Local drafts and Ranking Criteria work without signing in.'));results.append(empty);return;}
         if(view==='favourites') {
@@ -418,7 +452,7 @@
             }
             discussions=rows;cursor=nextCursor;allLoaded=!cursor;
             await baselineDiscussions(rows);if(turn!==generation)return;
-            if(view==='mine'||view==='followups')trackedMine=rows;
+            if(view==='mine')trackedMine=rows;
             if(view==='map'){currentMap=rows;currentMapLoaded=true;updateRelatedEditors();}
             drawRows(rows);load.hidden=!cursor;
         } catch(error){if(turn!==generation)return;discussions=rows;drawRows(rows);results.prepend(el('p',`History loading stopped: ${error.message}. Already retrieved pages remain available.`,'kmh-fetch-error'));load.hidden=!nextCursor;cursor=nextCursor;}
@@ -474,7 +508,8 @@
         if (!panel || view !== 'drafts') return;
         const target = panel.querySelector('[data-results]'); target.replaceChildren();
         const states = [...draftStates].filter(state => state.editor.isConnected);
-        if (!states.length) { target.append(el('div', 'No editable discussion is currently available.', 'kmh-empty-state')); return; }
+        target.append(el('p','Drafts are saved locally as you type, per mapset and editor. After returning to the same page, open Draft recovery to restore a saved copy. Restore does not post your message.','kmh-draft-explanation'));
+        if (!states.length) { target.append(el('div', 'Open a discussion editor on this mapset to view its saved local draft.','kmh-empty-state')); return; }
         for (const state of states) {
             const key = draftKey(state.editor);
             if (state.key !== key) await recoverDraft(state);
@@ -482,7 +517,8 @@
             if (view !== 'drafts' || !target.isConnected) return;
             const row=el('article',null,'kmh-mod-row kmh-draft-card');
             const title=el('strong',state.editor.classList.contains('beatmap-discussion-new__message-area') ? 'New discussion' : 'Discussion reply','kmh-draft-title');
-            const note=el('p',stored?.text ? `Saved locally · ${new Date(stored.updatedAt).toLocaleString()}` : 'No saved draft for this editor.','kmh-draft-note');
+            const isSame=!!stored?.text && stored.text===textOf(state.editor);
+            const note=el('p',stored?.text ? (isSame?'Saved copy matches your current editor · no restore needed':`Recoverable local copy · ${new Date(stored.updatedAt).toLocaleString()}`) : 'No saved draft for this editor. Type in the native editor to create one.','kmh-draft-note');
             const preview=el('p',String(stored?.text || '').slice(0,170),'kmh-discussion-excerpt');
             const actions=el('div',null,'kmh-mod-actions');
             const restore=button('Restore draft',()=>{
@@ -492,6 +528,7 @@
                 closeWorkspace();state.editor.focus();
             },'kmh-small-action');
             restore.disabled=!stored?.text || stored.text===textOf(state.editor);
+            const discard=button('Delete saved copy',async()=>{if(!stored?.text||!confirm('Delete only this local recovery copy? Your current editor text will not change.'))return;await chrome.storage.local.remove([key]);state.saved='';renderDrafts();},'kmh-small-action');discard.disabled=!stored?.text;
             const related=button('Find related discussions',async()=>{
                 related.disabled=true;
                 try {
@@ -505,7 +542,7 @@
                 finally{related.disabled=false;}
             },'kmh-small-action');
             related.disabled=!profile;
-            actions.append(restore,related);row.append(title,note,preview,actions);target.append(row);
+            actions.append(restore,related,discard);row.append(title,note,preview,actions);target.append(row);
         }
     }
     function ensurePanel() {
@@ -517,7 +554,7 @@
         const hero=el('header',null,'kmh-workspace-hero');
         const heroText=el('div',null,'kmh-hero-copy');
         heroText.append(el('span','MODDING / DISCUSSIONS','kmh-eyebrow'));
-        const title=el('h2','My discussions');title.id='kmh-finder-title';heroText.append(title,el('p','Review discussions you started, identify new activity and revisit mapsets.'));
+        const title=el('h2','My discussions');title.id='kmh-finder-title';heroText.append(title,el('p','Your modposts, sorted by latest activity, with new changes highlighted.'));
         const close=button('×',closeWorkspace,'kmh-icon-button');close.dataset.close='';close.setAttribute('aria-label','Close mod finder');
         const helperActions=el('div',null,'kmh-workspace-hero-tools');
         helperActions.append(button('Draft Coach',()=>{closeWorkspace();window.KmhDraftCoach?.open?.();},'kmh-outline-button'),button('⚙ Settings',()=>{closeWorkspace();window.KmhOpenSettings?.();},'kmh-outline-button'),close);
@@ -526,13 +563,13 @@
         const connectButton=button('Connect osu! account ↗',connect,'kmh-primary-button');connectButton.dataset.connect='';accountStrip.append(account,connectButton);
         const layout=el('div',null,'kmh-workspace-layout');const sidebar=el('nav',null,'kmh-workspace-sidebar');sidebar.setAttribute('aria-label','Mod finder views');
         sidebar.append(el('div','BROWSE','kmh-sidebar-title'));
-        for(const [id,label,icon] of [['followups','Open follow-ups','fas fa-inbox'],['mine','My discussions','fas fa-comments'],['map','Current mapset','fas fa-music'],['favourites','Favourites','fas fa-heart'],['drafts','Drafts & duplicates','fas fa-file-alt']]) {
+        for(const [id,label,icon] of [['mine','My discussions','fas fa-comments'],['drafts','Draft recovery','fas fa-file-alt']]) {
             const tab=button(label,()=>{view=id;searchQuery=''; const field=panel.querySelector('[data-search]');if(field)field.value='';loadView(false);},'kmh-nav-tab');
             tab.dataset.view=id;const graphic=el('i',null,icon);tab.prepend(graphic);
-            if(id==='followups'){const unread=el('span','', 'kmh-nav-unread');unread.dataset.unreadTab='';unread.hidden=true;tab.append(unread);}
+            if(id==='mine'){const unread=el('span','', 'kmh-nav-unread');unread.dataset.unreadTab='';unread.hidden=true;tab.append(unread);}
             sidebar.append(tab);
         }
-        const hint=el('div',null,'kmh-sidebar-hint');hint.append(el('strong','Unread activity'),el('p','Uses local checkpoints; not an official osu! notification feed. Visit a thread or open its replies to clear an activity marker.'));sidebar.append(hint);
+        const hint=el('div',null,'kmh-sidebar-hint');hint.append(el('strong','Recent activity'),el('p','Changed posts appear above previously seen discussions. This is a local checkpoint, not an official unread feed. Open a thread to acknowledge an update.'));sidebar.append(hint);
         const main=el('main',null,'kmh-workspace-main');
         const mainHead=el('div',null,'kmh-list-header');const viewName=el('div','DISCUSSION RESULTS','kmh-eyebrow');viewName.dataset.resultsLabel='';mainHead.append(viewName);
         const refresh=button('↻ Refresh',()=>loadView(false),'kmh-outline-button');mainHead.append(refresh);
@@ -577,7 +614,7 @@
         const results=el('div');results.dataset.results='';results.className='kmh-workspace-results';
         const more=button('Load next 50 discussions',()=>loadView(true),'kmh-load-more');more.dataset.more='';more.hidden=true;
         const scroll=el('div',null,'kmh-workspace-scroll');scroll.append(checkpoint,coverage,results,more);
-        main.append(mainHead,counts,controls,types,scroll);layout.append(sidebar,main);panel.append(hero,accountStrip,layout);
+        main.append(mainHead,counts,controls,types,scroll);layout.append(sidebar,main);        const profileShell=el('div',null,'kmh-profile-shell');profileShell.append(hero,accountStrip);panel.append(profileShell,layout);
         overlay=el('div',null,'kmh-workspace-overlay');overlay.hidden=true;overlay.append(panel);
         overlay.onclick=event=>{if(event.target===overlay)closeWorkspace();};document.body.append(overlay);
         window.addEventListener('kmh-review-state-ready',renderCheckpoint);renderCheckpoint();
@@ -594,7 +631,7 @@
             trackedMine=rows;
             // Lightweight activity checks cover the newest 50; the full workspace can fetch more pages on demand.
             updateUnreadBadges(rows);
-            if(overlay && !overlay.hidden && (view==='mine'||view==='followups'))await loadView(false);
+            if(overlay && !overlay.hidden && view==='mine')await loadView(false);
         }catch(error){ console.debug('Modding Helper: activity check unavailable',error.message); }
         finally{lastActivityScan=Date.now();checkingActivity=false;}
     }

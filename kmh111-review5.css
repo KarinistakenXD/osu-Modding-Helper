@@ -1,0 +1,98 @@
+/* v1.1.1 Review 5 — native editor controls, small contextual previews, safe uploads. */
+
+/* Keep helper actions visually compatible with osu!'s blue big-button family. */
+.kmh-editor-actions .kmh-editor-action-large,
+.kmh-editor-actions [data-kmh-open-coach].kmh-editor-action-large {
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  width:auto!important;min-width:0!important;height:31px!important;min-height:31px!important;
+  gap:5px!important;padding:0 10px!important;border:0!important;border-radius:4px!important;
+  background:hsl(var(--hsl-h2,200,50%,45%))!important;color:#fff!important;
+  font-size:11px!important;font-weight:700!important;line-height:1!important;
+  text-shadow:none!important;
+}
+.kmh-editor-actions .kmh-editor-action-large .kmh-tool-label,
+.kmh-editor-actions [data-kmh-open-coach].kmh-editor-action-large .kmh-tool-label{
+  display:inline!important;color:#fff!important;font:inherit!important;
+}
+.kmh-editor-actions .kmh-editor-action-large i {color:white!important}
+.kmh-editor-actions .kmh-editor-action-large:hover{filter:brightness(1.12)!important}
+.kmh-editor-actions .kmh-editor-action-large:focus-visible {outline:2px solid #9ddcff;outline-offset:2px}
+.kmh-editor-actions{gap:3px!important;flex-wrap:wrap!important}
+.kmh-editor-actions [hidden]{display:none!important}
+@media (max-width:520px){
+ .kmh-editor-actions .kmh-editor-action-large{height:29px!important;padding:0 7px!important;font-size:10px!important}
+}
+
+/* Native unavailable actions must not appear as active, glowing warnings. */
+.beatmap-discussion-new__footer button[data-type]:disabled,
+.beatmap-discussion-new__footer [data-type][aria-disabled="true"]{
+  background:hsl(var(--hsl-b2,200,10%,30%))!important;
+  color:hsl(var(--hsl-f1,200,10%,60%))!important;
+  opacity:.62!important;filter:none!important;
+  box-shadow:none!important;text-shadow:none!important;
+}
+.custom-metadata-block .kmh-metadata-copy[disabled],
+.custom-metadata-block .kmh-metadata-copy.btn-osu-big--disabled{
+  background:hsl(var(--hsl-b2,200,10%,30%))!important;
+  color:hsl(var(--hsl-f1,200,10%,60%))!important;
+  cursor:not-allowed!important;opacity:.65!important;
+}
+.custom-metadata-block .kmh-metadata-copy:not(:disabled){color:#fff!important}
+
+/* Source inspector must never cover osu!'s native edit button. */
+.beatmapset-info__row>.kmh111-inspect-entry{
+  right:36px!important;inset-inline-end:36px!important;z-index:2!important;
+}
+/* No forced wide download row on the mapset hero. */
+.beatmapset-header .kmh111-download-action-row:has(>.kmh111-dl-toggle){
+  max-width:280px!important;flex:0 1 280px!important;min-width:0!important;
+}
+.beatmapset-header .kmh111-download-action-row>a.btn-osu-big{
+  min-width:100px!important;width:auto!important;max-width:230px!important;
+  flex:1 1 160px!important;
+}
+.beatmapset-header .kmh111-dl-toggle{flex:0 0 31px!important}
+
+/* Excerpts are not an additional full post; two compact lines at most. */
+.kmh-nearby-list {
+  max-height:106px;overflow-y:auto;overscroll-behavior:contain;
+  background:hsl(var(--hsl-b4,200,10%,20%));border-radius:4px;
+  margin:5px 0 1px;padding:4px 8px;
+  font:11px/1.4 var(--font-default,Torus,Inter,sans-serif);
+}
+.kmh-nearby-title{display:block;color:hsl(var(--hsl-l1,200,40%,80%));font-size:10px;margin-bottom:2px}
+.kmh-nearby-item{display:flex;align-items:center;gap:7px;padding:3px 0;border-top:1px solid rgba(255,255,255,.055);min-width:0}
+.kmh-nearby-edit{flex:0 0 auto;color:#86cfff!important;text-decoration:none!important;font:700 11px var(--font-default,Torus,Inter,sans-serif)}
+.kmh-nearby-excerpt{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:hsl(var(--hsl-l1,200,40%,80%))}
+.kmh-nearby-open{flex:0 0 auto;color:#fff!important;background:hsl(var(--hsl-b2,200,10%,30%));border-radius:3px;padding:1px 6px;text-decoration:none!important}
+.kmh-nearby-open:hover,.kmh-nearby-edit:hover{filter:brightness(1.2)}
+.kmh-nearby-extra{font-size:10px;color:#aac1c9}
+.kmh-nearby-list:empty{display:none}
+
+/* Dragged images: screen-level overlay that never steals the native editor's focus. */
+.kmh-upload-drop-overlay:not([hidden]){
+  position:fixed;inset:0;display:grid;place-items:center;
+  z-index:11010;pointer-events:none;
+  background:rgba(8,14,22,.79);
+  outline:4px dashed rgba(87,195,255,.7);outline-offset:-15px;
+}
+.kmh-upload-drop-overlay[hidden]{display:none!important}
+.kmh-upload-drop-message{
+  display:flex;align-items:center;flex-direction:column;gap:11px;
+  padding:27px 36px;max-width:min(400px,90vw);text-align:center;
+  border:1px solid hsl(var(--hsl-h2,200,50%,45%));
+  border-radius:10px;background:hsl(var(--hsl-b4,200,10%,20%));
+  box-shadow:0 20px 55px rgba(0,0,0,.55);color:#fff;
+}
+.kmh-upload-drop-message>i{font-size:32px;color:#76d4ff}
+.kmh-upload-drop-message strong{font-size:18px}
+.kmh-upload-drop-message span{font-size:12px;color:hsl(var(--hsl-l1,200,40%,80%))}
+#kmh-upload-status-toast[data-phase="loading"]::before{
+  content:"";display:inline-block;width:12px;height:12px;margin-right:8px;
+  border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;
+  vertical-align:-2px;animation:kmh-upload-spin .7s linear infinite
+}
+#kmh-upload-status-toast[data-phase="error"]{border-left:3px solid #e76a6a!important}
+#kmh-upload-status-toast[data-phase="success"]{border-left:3px solid #6aca84!important}
+@keyframes kmh-upload-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){#kmh-upload-status-toast[data-phase="loading"]::before{animation:none}}

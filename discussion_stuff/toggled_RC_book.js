@@ -1,148 +1,106 @@
+/* Ranking Criteria panel: selected difficulty is explicit; SR is informational,
+   not an authority on Easy/Normal/Hard/Insane/Expert classification. */
 function toggled_RC_book() {
-
-    const mapDataNode = document.getElementById('json-beatmapset');
-    if (!mapDataNode) return;
-    const mapData = JSON.parse(mapDataNode.textContent);
-
-    const urlParts = window.location.pathname.split('/');
-    const discussionIndex = urlParts.indexOf('discussion');
-    const urlBeatmapId = discussionIndex !== -1 ? Number(urlParts[discussionIndex + 1]) : NaN;
-    const selectedBeatmap = document.querySelector('.beatmap-list__item--current[data-id]');
-    const selectedBeatmapId = selectedBeatmap ? Number(selectedBeatmap.dataset.id) : NaN;
-    const activeModeLink = document.querySelector('.game-mode-link--active[data-mode]');
-    const activeMode = activeModeLink ? activeModeLink.dataset.mode : null;
-
-    let mode = 'osu';
-    let targetMap = null;
-    if (mapData.beatmaps && mapData.beatmaps.length > 0) {
-        targetMap = Number.isInteger(urlBeatmapId)
-            ? mapData.beatmaps.find(beatmap => beatmap.id === urlBeatmapId)
-            : null;
-
-        if (!targetMap && Number.isInteger(selectedBeatmapId)) {
-            targetMap = mapData.beatmaps.find(beatmap => beatmap.id === selectedBeatmapId);
-        }
-
-        if (!targetMap && activeMode) {
-            targetMap = mapData.beatmaps.find(beatmap => beatmap.mode === activeMode);
-        }
-
-        if (!targetMap) targetMap = mapData.beatmaps[0];
-        mode = targetMap.mode;
+  'use strict';
+  let beatmapset;
+  try {beatmapset=JSON.parse(document.getElementById('json-beatmapset')?.textContent||'null');}catch{return;}
+  const beatmaps=(beatmapset?.beatmaps||[]).filter(m=>m&&Number.isSafeInteger(Number(m.id)));
+  if(!beatmaps.length)return;
+  const modePath={osu:'osu%21',taiko:'osu%21taiko',fruits:'osu%21catch',mania:'osu%21mania'};
+  const modeLabel={osu:'osu!',taiko:'osu!taiko',fruits:'osu!catch',mania:'osu!mania'};
+  const findMap=id=>beatmaps.find(m=>String(m.id)===String(id));
+  function selectedMap(){
+    const path=location.pathname.match(/\/beatmapsets\/\d+\/discussion\/(\d+)(?:\/|$)/);
+    if(path&&findMap(path[1]))return {map:findMap(path[1]),reason:'discussion URL'};
+    const hash=location.hash.match(/#(?:osu|taiko|fruits|mania)\/(\d+)/);
+    if(hash&&findMap(hash[1]))return {map:findMap(hash[1]),reason:'map URL'};
+    const selectors=['.beatmap-list__item--selected[data-id]','.beatmap-list__item--current[data-id]','[data-beatmap-id][aria-current="true"]','[data-beatmap-id][aria-selected="true"]','.beatmap-list__item--selected[data-beatmap-id]'];
+    for(const css of selectors){const item=document.querySelector(css);const id=item?.dataset?.id||item?.dataset?.beatmapId;if(findMap(id))return {map:findMap(id),reason:'selected difficulty'};}
+    return {map:beatmaps[0],reason:beatmaps.length===1?'only difficulty':'first difficulty (unconfirmed)'};
+  }
+  function namedTier(name){
+    const s=String(name||'').toLowerCase().replace(/\[[^\]]*\]/g,' ');
+    if(/\b(?:beginner|easy)\b/.test(s))return 'easy';
+    if(/\bnormal\b/.test(s))return 'normal';
+    if(/\b(?:advanced|hard)\b/.test(s))return 'hard';
+    if(/\b(?:hyper|insane)\b/.test(s))return 'insane';
+    if(/\b(?:extra|expert|extreme|another)\b/.test(s))return 'expert';
+    return '';
+  }
+  const tiers=['easy','normal','hard','insane','expert'];
+  function suggestedTier(sr){
+    if(!Number.isFinite(sr))return '';
+    if(sr<2)return 'easy';if(sr<2.7)return 'normal';if(sr<4)return 'hard';
+    if(sr<5.3)return 'insane';return 'expert'; // includes Expert+; RC only has Expert
+  }
+  const modeUrl=mode=>'https://osu.ppy.sh/wiki/en/Ranking_criteria/'+(modePath[mode]||modePath.osu);
+  const commonTopics={
+    difficulty:['Current difficulty RC',null],
+    general:['General Ranking Criteria','https://osu.ppy.sh/wiki/en/Ranking_criteria'],
+    metadata:['Metadata RC','https://osu.ppy.sh/wiki/en/Ranking_criteria/Metadata'],
+    standardisation:['Standardisation (Metadata)','https://osu.ppy.sh/wiki/en/Ranking_criteria/Metadata#romanisation'],
+    visual:['Visual content considerations','https://osu.ppy.sh/wiki/en/Rules/Visual_content_considerations'],
+    song:['Song content rules','https://osu.ppy.sh/wiki/en/Rules/Song_content_rules'],
+    conduct:['Code of conduct for modding','https://osu.ppy.sh/wiki/en/Rules/Code_of_conduct_for_modding_and_mapping'],
+    procedure:['Beatmap ranking procedure','https://osu.ppy.sh/wiki/en/Beatmap_ranking_procedure']
+  };
+  function sync(panel){
+    if(!panel)return;
+    const initial=selectedMap();
+    if(!findMap(panel.dataset.kmhMapId))panel.dataset.kmhMapId=String(initial.map.id);
+    const map=findMap(panel.dataset.kmhMapId)||initial.map;
+    const selectMap=panel.querySelector('[data-kmh-rc-map]');
+    if(selectMap && selectMap.options.length!==beatmaps.length){
+      selectMap.replaceChildren();
+      for(const bm of beatmaps){const opt=document.createElement('option');opt.value=String(bm.id);const sr=Number(bm.difficulty_rating);opt.textContent=`${bm.version||'Unnamed difficulty'}${Number.isFinite(sr)?` · ${sr.toFixed(2)}★`:''} (${bm.mode||'osu'})`;selectMap.append(opt);}
     }
-
-    const difficultyRating = targetMap && Number.isFinite(Number(targetMap.difficulty_rating))
-        ? Number(targetMap.difficulty_rating)
-        : null;
-    const difficultyName = targetMap?.version || 'current difficulty';
-    let difficultyRange = 'unknown star range';
-    if (difficultyRating !== null) {
-        if (difficultyRating < 1.81) difficultyRange = 'easy';
-        else if (difficultyRating < 2.51) difficultyRange = 'normal';
-        else if (difficultyRating < 3.51) difficultyRange = 'hard';
-        else if (difficultyRating < 4.25) difficultyRange = 'insane';
-        else difficultyRange = 'expert';
+    if(selectMap)selectMap.value=String(map.id);
+    const tierChoice=panel.querySelector('[data-kmh-rc-tier]');
+    const isManual=panel.dataset.kmhManualTier==='1';
+    const named=namedTier(map.version);
+    const sr=Number(map.difficulty_rating);
+    const inferred=named||suggestedTier(sr);
+    const relativeName=/\b(?:top|final|upper|highest)\b/i.test(String(map.version||''));
+    if(!isManual||panel.dataset.kmhTierMap!==String(map.id)){
+      panel.dataset.kmhTier=inferred;
+      panel.dataset.kmhTierMap=String(map.id);
+      panel.dataset.kmhManualTier='0';
     }
-
-    const difficultyTier = difficultyRating === null
-        ? 'easy'
-        : difficultyRating < 1.81
-            ? 'easy'
-            : difficultyRating < 2.51
-                ? 'normal'
-                : difficultyRating < 3.51
-                    ? 'hard'
-                    : difficultyRating < 4.25
-                        ? 'insane'
-                        : 'expert';
-
-    const rcLinks = {
-        osu: {
-            easy: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21#:~:text=Expert-,Easy,-Rules',
-            normal: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21#:~:text=4%20or%20lower.-,Normal,-Rules',
-            hard: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21#:~:text=5%20or%20lower.-,Hard,-Rules',
-            insane: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21#:~:text=6%20or%20lower.-,Insane,-Rules',
-            expert: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21#:~:text=7%20or%20lower.-,Expert,-Rules'
-        },
-        taiko: {
-            easy: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21taiko#:~:text=16%E2%80%9320%20beats-,Kantan,-Rules',
-            normal: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21taiko#:~:text=more1.-,Futsuu,-Rules',
-            hard: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21taiko#:~:text=more1.-,Muzukashii,-Rules',
-            insane: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21taiko#:~:text=more1.-,Oni,-Rules',
-            expert: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21taiko#:~:text=more1.-,Inner%20Oni,-Guidelines'
-        },
-        fruits: {
-            easy: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21catch#:~:text=%2D-,Cup,-Rules',
-            normal: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21catch#:~:text=2.5%20or%20lower.-,Salad,-Rules',
-            hard: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21catch#:~:text=3%20or%20lower.-,Platter,-Rules',
-            insane: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21catch#:~:text=3.5%20or%20lower.-,Rain,-Rules',
-            expert: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21catch#:~:text=4%20or%20lower.-,Overdose,-Rules'
-        },
-        mania: {
-            easy: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21mania#:~:text=guidelines%20when%20applicable.-,Easy,-Rules',
-            normal: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21mania#:~:text=than%20two%20columns.-,Normal,-Rules',
-            hard: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21mania#:~:text=cannot%20reasonably%20handle.-,Hard,-Guidelines',
-            insane: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21mania#:~:text=2/1%20beats.-,Insane,-Guidelines',
-            expert: 'https://osu.ppy.sh/wiki/en/Ranking_criteria/osu%21mania#:~:text=be%20used%20sparingly.-,Expert,-Guidelines'
-        }
-    };
-
-    const rcLink = (rcLinks[mode] || rcLinks.osu)[difficultyTier];
-    const displayMode = mode === 'osu' ? '' : mode === 'fruits' ? 'catch' : mode;
-
-    const syncOpenPanel = () => {
-        const panel = document.getElementById('custom-rc-panel');
-        if (!panel) return;
-
-        const panelFrame = panel.querySelector('iframe');
-        const panelTitle = panel.querySelector('[data-rc-panel-title]');
-        const panelDifficulty = panel.querySelector('[data-rc-difficulty]');
-        if (panelFrame && panelFrame.getAttribute('src') !== rcLink) panelFrame.src = rcLink;
-        if (panelTitle) panelTitle.textContent = `osu!${displayMode ? `${displayMode} ` : ''}${difficultyTier} RC Guidelines`;
-        if (panelDifficulty) {
-            panelDifficulty.textContent = difficultyRating === null
-                ? `${difficultyName} - ${difficultyRange}`
-                : `${difficultyName} - ${difficultyRating.toFixed(2)}★ - ${difficultyRange}`;
-        }
-    };
-
-    syncOpenPanel();
-
-    const showPanel = (e) => {
-        e?.preventDefault?.();
-
-            let panel = document.getElementById('custom-rc-panel');
-            if (panel) {
-                syncOpenPanel();
-                panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
-                return;
-            }
-
-            panel = document.createElement('div');
-            panel.id = 'custom-rc-panel';
-            panel.className = 'kmh-rc-drawer';
-            // Leave layout to the stylesheet; its header shares osu!'s
-            // --navbar-height. No hard-coded 70px header or padded spacer.
-            panel.innerHTML = `
-                <div class="kmh-rc-drawer__header">
-                    <div class="kmh-rc-drawer__heading">
-                        <span data-rc-panel-title class="kmh-rc-drawer__title">Ranking Criteria</span>
-                        <span data-rc-difficulty class="kmh-rc-drawer__subtitle"></span>
-                    </div>
-                    <button type="button" id="close-rc-panel" class="kmh-rc-drawer__close" aria-label="Close Ranking Criteria panel" title="Close Ranking Criteria panel">
-                        <i class="fas fa-times" aria-hidden="true"></i>
-                    </button>
-                </div>
-                <iframe title="osu! Ranking Criteria" referrerpolicy="strict-origin-when-cross-origin"></iframe>
-            `;
-
-            document.body.appendChild(panel);
-            syncOpenPanel();
-
-            const closeBtn = panel.querySelector('#close-rc-panel');
-            closeBtn.onclick = () => {
-                panel.style.display = 'none';
-            };
-    };
-    window.KmhOpenRC = showPanel;
+    if(tierChoice)tierChoice.value=panel.dataset.kmhTier||'';
+    const tier=panel.dataset.kmhTier||'';
+    const topic=panel.dataset.kmhRcTopic in commonTopics?panel.dataset.kmhRcTopic:'difficulty';
+    const url=topic==='difficulty'?`${modeUrl(map.mode)}${tier?'#'+tier:''}`:commonTopics[topic][1];
+    const title=topic==='difficulty'?`${modeLabel[map.mode]||'osu!'} RC${tier?' · '+tier.charAt(0).toUpperCase()+tier.slice(1):''}`:commonTopics[topic][0];
+    const difficultyTopic=topic==='difficulty';
+    const selectors=panel.querySelector('.kmh-rc-secondary-selectors');
+    if(selectors)selectors.hidden=!difficultyTopic;
+    const warning=panel.querySelector('.kmh-rc-warning');
+    if(warning)warning.hidden=!difficultyTopic;
+    if(warning){warning.textContent=panel.dataset.kmhManualTier==='1'?'Manual RC tier · verify the actual pattern difficulty':named?'Tier suggested by name · check its pattern requirements':tier?(relativeName?'Top/final is relative to this spread; SR provides a tentative tier · verify the patterns':'SR suggests this tier · NOT an RC classification; verify patterns manually'):'No tier found · select one manually';}
+    const titleEl=panel.querySelector('[data-rc-panel-title]');if(titleEl)titleEl.textContent=title;
+    const sub=panel.querySelector('[data-rc-difficulty]');if(sub)sub.textContent=difficultyTopic?`${map.version||'Unnamed difficulty'} · ${Number.isFinite(sr)?sr.toFixed(2)+'★':'SR unavailable'} · ${panel.dataset.kmhMapId===String(initial.map.id)?initial.reason:'manual map selection'}`:'General reference · applies across difficulties';
+    const link=panel.querySelector('[data-kmh-rc-external]');if(link)link.href=url;
+    const frame=panel.querySelector('iframe');if(frame&&frame.getAttribute('src')!==url)frame.src=url;
+  }
+  function open(event){
+    event?.preventDefault?.();
+    let panel=document.getElementById('custom-rc-panel');
+    if(panel){panel.style.display=panel.style.display==='none'?'flex':'none';if(panel.style.display!=='none')sync(panel);return;}
+    panel=document.createElement('div');panel.id='custom-rc-panel';panel.className='kmh-rc-drawer';
+    panel.innerHTML=`<div class="kmh-rc-drawer__header"><div class="kmh-rc-drawer__heading"><span data-rc-panel-title class="kmh-rc-drawer__title">Ranking Criteria</span><span data-rc-difficulty class="kmh-rc-drawer__subtitle"></span></div><button type="button" id="close-rc-panel" class="kmh-rc-drawer__close" aria-label="Close Ranking Criteria panel" title="Close Ranking Criteria"><i class="fas fa-times" aria-hidden="true"></i></button></div>
+     <nav class="kmh111-rc-nav" aria-label="Ranking Criteria topics"><select data-kmh-rc-topic aria-label="RC topic"></select><a data-kmh-rc-external href="https://osu.ppy.sh/wiki/en/Ranking_criteria" target="_blank" rel="noopener noreferrer">Open in wiki ↗</a></nav>
+     <div class="kmh-rc-secondary-selectors"><label>Difficulty<select data-kmh-rc-map aria-label="Select beatmap difficulty"></select></label><label>RC level<select data-kmh-rc-tier aria-label="Choose RC difficulty tier"><option value="">Unclassified</option><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option><option value="insane">Insane</option><option value="expert">Expert</option></select></label></div>
+     <small class="kmh-rc-warning"></small><iframe title="osu! Ranking Criteria" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+    document.body.appendChild(panel);
+    panel.dataset.kmhMapId=String(selectedMap().map.id);
+    const topics=panel.querySelector('[data-kmh-rc-topic]');for(const [key,t] of Object.entries(commonTopics)){const option=document.createElement('option');option.value=key;option.textContent=t[0];topics.append(option);}
+    topics.addEventListener('change',()=>{panel.dataset.kmhRcTopic=topics.value;sync(panel);});
+    panel.querySelector('[data-kmh-rc-map]').addEventListener('change',e=>{panel.dataset.kmhMapId=e.target.value;panel.dataset.kmhManualTier='0';sync(panel);});
+    panel.querySelector('[data-kmh-rc-tier]').addEventListener('change',e=>{panel.dataset.kmhTier=e.target.value;panel.dataset.kmhManualTier='1';sync(panel);});
+    panel.querySelector('#close-rc-panel').addEventListener('click',()=>panel.style.display='none');
+    sync(panel);
+  }
+  window.KmhOpenRC=open;
+  const openPanel=document.getElementById('custom-rc-panel');
+  if(openPanel&&openPanel.style.display!=='none')sync(openPanel);
 }

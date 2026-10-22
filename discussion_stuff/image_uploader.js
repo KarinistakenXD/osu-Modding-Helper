@@ -9,6 +9,12 @@
  const allowedArea='.beatmap-discussion-new, .beatmap-discussion-post--new-reply, .beatmap-discussion-post__message--editor, .beatmap-discussion-post--reply, .beatmap-discussion--review, .beatmap-discussion-review';
  const editable='textarea, [contenteditable="true"]';
  const imageExt=/\.(png|jpe?g|gif|webp|avif|bmp)(?:\?.*)?$/i;
+ // s-ul is a file host, but some formats are restricted by the service.
+ // Never upload executables or arbitrary unknown file types by accident.
+ const safeFile=/\.(?:png|jpe?g|gif|webp|avif|bmp|svg|pdf|txt|md|json|csv|xml|log|osu|osz|zip|7z|rar|mp3|ogg|wav|mp4|webm)$/i;
+ const isImageFile=file=>file.type.startsWith('image/')||/\.(png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(file.name||'');
+ const fileAllowed=file=>!!file&&safeFile.test(file.name||'');
+ const escapeLabel=name=>String(name||'Attachment').replace(/[\[\]\r\n]/g,'').replace(/[()]/g,'_').slice(0,100);
  function inside(){return /^\/beatmapsets\/\d+\/discussion(?:\/|$)/.test(location.pathname);}
  function findField(target){
    if(!(target instanceof Element))return null;
@@ -57,34 +63,36 @@
  function toast(message,action){
    document.getElementById('kmh-upload-status-toast')?.remove();
    const el=document.createElement('div');el.id='kmh-upload-status-toast';el.setAttribute('role','status');
+   el.dataset.phase=/uploading|reading/i.test(message)?'loading':/failed|error|could not|requires|larger/i.test(message)?'error':'success';
    const span=document.createElement('span');span.textContent=message;el.append(span);
    if(action){const button=document.createElement('button');button.type='button';button.textContent='Open settings';button.onclick=()=>{el.remove();const opener=document.querySelector('[data-kmh-open-settings]')||document.querySelector('.kmh-entry-main');opener?.click();document.querySelector('[data-settings-tab="integrations"]')?.click();};el.append(button);}
    document.body.append(el);setTimeout(()=>el.remove(),7000);
  }
  function upload(field,file){
-   if(!file||!file.type.startsWith('image/'))return;
-   if(!hasKey){toast('Image upload requires your s-ul.eu API key.',true);return;}
-   if(file.size>20*1024*1024){toast('Image is larger than 20 MB. Compress it before uploading.');return;}
-   const token=`[uploading:${crypto.randomUUID()}]`;
+   if(!file)return;
+   if(!fileAllowed(file)){toast('This file type is not supported. Choose an image, document, .osu/.osz, archive or media file.');return;}
+   if(!hasKey){toast('File upload requires your s-ul.eu API key.',true);return;}
+   if(file.size>20*1024*1024){toast('File exceeds the 20 MB upload limit.');return;}
+   const token=`[uploading:${crypto.randomUUID?.()||('kmh-'+Date.now()+'-'+Math.random().toString(36).slice(2))}]`;
    const canReplace=field instanceof HTMLTextAreaElement;
    if(canReplace)nativeInsert(field,token);
-   toast('Uploading image to s-ul.eu…');
+   toast(`Uploading ${file.name||'file'} to s-ul.eu…`);
    const reader=new FileReader();
    reader.onerror=()=>{if(canReplace)replacePlaceholder(field,token,'');toast('Could not read the image file.');};
    reader.onload=()=>{
      try{
-       chrome.runtime.sendMessage({action:'uploadImage',imageData:reader.result,fileName:file.name||'clipboard.png',fileType:file.type}, response=>{
+       chrome.runtime.sendMessage({action:'uploadFile',imageData:reader.result,fileName:file.name||'clipboard.png',fileType:file.type}, response=>{
          if(chrome.runtime.lastError||!response?.url){
            if(canReplace)replacePlaceholder(field,token,'');
            toast('Image upload failed: '+(response?.error||chrome.runtime.lastError?.message||'unknown error'),true);
            return;
          }
-         const name=(file.name||'Image').replace(/[\[\]\r\n]/g,'');
-         const markdown=`![${name}](${response.url})`;
+         const name=escapeLabel(file.name||'Image');
+         const markdown=isImageFile(file)?`![${name}](${response.url})`:`[${name}](${response.url})`;
          if(canReplace)replacePlaceholder(field,token,markdown);else nativeInsert(field,markdown);
          document.dispatchEvent(new CustomEvent('kmh-image-uploaded',{detail:{url:response.url}}));
          document.querySelector('.kmh-linked-preview')?.removeAttribute('hidden');
-         toast('Image uploaded and inserted into the discussion.');
+         toast('File uploaded and link inserted into the editor.');
        });
      }catch(error){if(canReplace)replacePlaceholder(field,token,'');toast('Upload failed: '+error.message);}
    };
@@ -95,7 +103,7 @@
    const field=findField(e.target);
    if(!field)return;
    const cb=e.clipboardData;if(!cb)return;
-   const files=[...(cb.items||[])].filter(x=>x.kind==='file'&&x.type.startsWith('image/')).map(x=>x.getAsFile()).filter(Boolean);
+   const files=[...(cb.items||[])].filter(x=>x.kind==='file').map(x=>x.getAsFile()).filter(Boolean);
    if(files.length){
      if(!isModHelperFeatureEnabled('imageUploader')||window.imagePasteEnabled===false)return;
      e.preventDefault();e.stopPropagation();files.forEach(file=>upload(field,file));
@@ -108,18 +116,65 @@
      nativeInsert(field,`![](${text})`);
    }
  },true);
- document.addEventListener('dragover',e=>{
-   if(!inside()||!findField(e.target))return;
-   if([...e.dataTransfer?.types||[]].includes('Files')&&isModHelperFeatureEnabled('imageUploader')){
-     e.preventDefault();e.dataTransfer.dropEffect='copy';
-   }
+ let activeEditor=null;
+ const hasFiles=e=>[...(e.dataTransfer?.types||[])].includes('Files');
+ const currentEditor=target=>{
+   const direct=findField(target);
+   if(direct)return direct;
+   if(activeEditor?.isConnected&&activeEditor.getClientRects().length)return activeEditor;
+   const editors=[...new Set([...document.querySelectorAll(allowedArea)]
+     .flatMap(area=>[...area.querySelectorAll('textarea')]))]
+     .filter(n=>n.getClientRects().length>0&&!n.disabled);
+   return editors.length===1?editors[0]:null;
+ };
+ document.addEventListener('focusin',e=>{
+   const selected=findField(e.target);
+   if(selected)activeEditor=selected;
  },true);
+ let overlay=null,dragDepth=0;
+ function getOverlay(){
+   if(overlay)return overlay;
+   overlay=document.createElement('div');
+   overlay.className='kmh-upload-drop-overlay';
+   overlay.hidden=true;
+   overlay.setAttribute('aria-hidden','true');
+   overlay.innerHTML='<div class="kmh-upload-drop-message"><i class="fas fa-cloud-upload-alt" aria-hidden="true"></i><strong>Drop a file to upload</strong><span>Images embed · other supported files become links · s-ul.eu</span></div>';
+   document.body.appendChild(overlay);
+   return overlay;
+ }
+ function hideDrop(){dragDepth=0;if(overlay)overlay.hidden=true;}
+ document.addEventListener('dragenter',e=>{
+   if(!inside()||!isModHelperFeatureEnabled('imageUploader')||!hasFiles(e))return;
+   dragDepth++;
+   const el=getOverlay();
+   el.hidden=false;
+ },true);
+ document.addEventListener('dragover',e=>{
+   if(!inside()||!isModHelperFeatureEnabled('imageUploader')||!hasFiles(e))return;
+   const editor=currentEditor(e.target);
+   if(!editor)return;
+   e.preventDefault();
+   if(e.dataTransfer)e.dataTransfer.dropEffect='copy';
+   getOverlay().hidden=false;
+ },true);
+ document.addEventListener('dragleave',e=>{
+   if(!overlay||overlay.hidden)return;
+   dragDepth=Math.max(0,dragDepth-1);
+   if(!dragDepth || (e.relatedTarget==null && (e.clientX<=0||e.clientY<=0||e.clientX>=innerWidth||e.clientY>=innerHeight)))hideDrop();
+ },true);
+ window.addEventListener('blur',hideDrop);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')hideDrop();},true);
  document.addEventListener('drop',e=>{
-   if(!inside()||!isModHelperFeatureEnabled('imageUploader'))return;
-   const field=findField(e.target);if(!field)return;
-   const files=[...(e.dataTransfer?.files||[])].filter(x=>x.type.startsWith('image/'));
+   const shouldHandle=inside()&&isModHelperFeatureEnabled('imageUploader');
+   hideDrop();
+   if(!shouldHandle)return;
+   const files=[...(e.dataTransfer?.files||[])];
    if(!files.length)return;
-   e.preventDefault();e.stopPropagation();files.forEach(f=>upload(field,f));
+   e.preventDefault(); // never navigate the page to a dropped file
+   const field=currentEditor(e.target);
+   if(!field){toast('Focus an osu! discussion editor before dropping a file.');return;}
+   e.stopPropagation();
+   files.slice(0,8).forEach(f=>upload(field,f));
  },true);
  window.KmhPasteUpload={findField,isImageLink,nativeInsert};
 })();

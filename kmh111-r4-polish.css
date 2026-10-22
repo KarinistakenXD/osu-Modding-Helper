@@ -1,0 +1,46 @@
+/* v1.1.1 local review 4: restrained syntax design and stable osu!web layout. */
+/* Source inspector belongs to the Source ROW, never the global edit controls. */
+.beatmapset-info__row:has(>.kmh111-inspect-entry),.kmh111-source-fallback {position:relative!important;padding-right:34px!important}
+.beatmapset-info__row>.kmh111-inspect-entry{position:absolute!important;top:0!important;right:36px!important;left:auto!important;bottom:auto!important;inset-inline-start:auto!important;inset-inline-end:36px!important;margin:0!important;width:26px!important;height:26px!important;min-width:26px!important;border-radius:5px!important;background:hsl(var(--hsl-b3,200,10%,25%))!important;box-shadow:none!important;}
+.beatmapset-info__row>.kmh111-inspect-entry:hover{background:hsl(var(--hsl-h2,200,50%,45%))!important}
+.kmh111-empty-source{font:11px/1.5 var(--font-default,Torus,Inter,sans-serif);color:hsl(var(--hsl-l1,200,40%,80%))}
+/* Download buttons should not consume the whole hero alongside alternative links. */
+.beatmapset-header .kmh111-download-action-row,.beatmapset-header .kmh111-has-download-toggle{width:auto!important;max-width:min(310px,100%)!important;flex:0 1 310px!important}
+.beatmapset-header .kmh111-download-action-row > .btn-osu-big{min-width:90px!important;max-width:260px!important}
+.beatmapset-header a.custom-download-btn{max-width:245px!important}
+.beatmapset-header .kmh111-dl-toggle{flex:0 0 31px!important}
+/* Hide non-current difficulty controls completely, without leaving a blank gap. */
+#custom-rc-panel .kmh-rc-secondary-selectors[hidden],#custom-rc-panel .kmh-rc-warning[hidden]{display:none!important}
+/* Stats mode-dependent, avoid clipping 4 values. */
+#custom-beatmap-advanced-stats .kmh-difficulty-stats-strip{gap:4px!important}
+#custom-beatmap-advanced-stats .kmh-difficulty-stat{min-width:75px!important;padding:5px 7px!important}
+#custom-beatmap-advanced-stats .kmh-difficulty-stat-label{font-size:10px!important}
+/* Small nearby excerpt with actual text when loaded, fallback link otherwise. */
+.kmh111-timestamp-peek{z-index:10051!important;width:min(294px,calc(100vw - 16px))!important;max-height:170px!important;pointer-events:auto!important;padding:9px!important}
+.kmh111-timestamp-peek strong{display:block;color:#b1e2ff;font-size:11px;margin-bottom:4px}
+.kmh111-timestamp-peek p{margin:3px 0 7px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:105px;overflow:hidden}
+.kmh111-timestamp-peek a{color:#7fcfff;text-decoration:none;font-size:10px;font-weight:700}
+/* Coach is auto-hidden while its anchor is far offscreen, but remains opened. */
+.kmh111-floating.kmh111-offscreen-anchor{visibility:hidden!important;pointer-events:none!important}
+/* Stable syntax colours: modifiers carry the colour, text retains exact width and input's font metrics. */
+.kmh-md-portal{color:hsl(var(--hsl-c1,200,40%,100%));text-shadow:none!important;filter:none!important;}
+.kmh-md-code{text-shadow:none!important;}
+.kmh-md-code span{font-weight:inherit!important;font-style:inherit!important;letter-spacing:inherit!important;text-shadow:none!important;}
+.kmh-md-delim{color:#a5a3bd!important;opacity:.88}
+.kmh-md-emphasis-content{color:#f6d0ff!important;text-decoration:underline;text-decoration-color:rgba(207,142,222,.48);text-decoration-thickness:1px;text-underline-offset:2px}
+.kmh-md-strike{color:#e5b5bb!important;text-decoration:line-through;text-decoration-color:#e2a4b5}
+.kmh-md-code-content{color:#e9d6ac!important;background:rgba(192,154,86,.105)!important;border-radius:2px}
+.kmh-md-fence-marker{color:#ac9c78!important;background:rgba(192,154,86,.12)!important}
+.kmh-md-block-marker{color:#9acaad!important;background:rgba(117,169,125,.12)!important}
+.kmh-md-link-label,.kmh-md-image-alt{color:#8bd8ff!important;text-decoration:underline;text-decoration-color:rgba(112,193,237,.4);text-underline-offset:2px}
+.kmh-md-link-url,.kmh-md-image-url{color:#7cb5cf!important}
+.kmh-md-image-alt,.kmh-md-image-url{color:#b9bbf3!important}
+.kmh-md-bare-url{color:#8accf1!important;text-decoration:underline;text-decoration-color:rgba(112,193,237,.45)}
+.kmh-md-timestamp{color:#e7c98d!important;background:rgba(217,174,93,.10)!important;border-radius:2px}
+textarea.kmh-md-original-transparent::selection{background:rgba(90,150,200,.30)!important}
+@media (prefers-reduced-motion:reduce){.kmh-md-portal,.kmh-md-code{transition:none!important;animation:none!important}}
+
+/* Idle indicators should not look like active warnings without a draft. */
+.kmh-inline-coach[data-kmh-has-draft="false"] .kmh-coach-pill.is-missing{opacity:.46!important;filter:saturate(.35)}
+.kmh-inline-coach[data-kmh-has-draft="false"] .kmh-coach-summary strong{color:#a8bac4!important}
+.beatmap-discussion-new:has(.beatmap-discussion-new__message textarea:placeholder-shown) .beatmap-discussion-new__footer [data-type]{filter:saturate(.43)!important;opacity:.57!important}

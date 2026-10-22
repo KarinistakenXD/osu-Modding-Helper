@@ -47,15 +47,17 @@ function setupOsuAuthListeners(connectBtn, host = document) {
     function render(status) {
         const connected = !!(status && status.connected);
         const expired = !!(status && status.expired);
-        isConnected = connected;
+        isConnected = connected && !expired;
 
         connectBtn.textContent = isConnected ? 'Disconnect osu! Account' : 'Connect osu! Account';
         connectBtn.classList.toggle('btn-osu-big--disabled', false);
         connectBtn.disabled = false;
 
         if (statusText) {
+            statusText.classList.toggle('kmh-auth-status-ok', isConnected);
+            statusText.classList.toggle('kmh-auth-status-error', !isConnected);
             if (isConnected) {
-                statusText.textContent = expired ? 'Status: Connected — refresh available' : 'Status: Connected';
+                statusText.textContent = 'Status: Connected';
                 statusText.style.color = '#a6cc2b';
             } else if (connected && expired) {
                 statusText.textContent = 'Status: Session expired — reconnect';

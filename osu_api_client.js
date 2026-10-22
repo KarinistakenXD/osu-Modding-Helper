@@ -83,6 +83,9 @@ if (typeof self.OsuAuthManager === 'undefined') {
     async function fetchCurrentProfile() {
         return cachedFetch('/me');
     }
+    async function fetchPublicUser(userId) {
+        return cachedFetch(`/users/${positiveId(userId)}`);
+    }
 
     /**
      * GET /api/v2/beatmapsets/{id} — full beatmapset payload: genre,
@@ -131,6 +134,7 @@ if (typeof self.OsuAuthManager === 'undefined') {
         fetchDiscussions,
         fetchDiscussionPosts,
         fetchFavourites,
+        fetchPublicUser,
         clearCache() { cacheEpoch++; cache.clear(); inFlight.clear(); rateLimitedUntil = 0; }
     };
 })();
