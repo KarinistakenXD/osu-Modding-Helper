@@ -43,34 +43,59 @@ function setupOsuAuthListeners(connectBtn, host = document) {
 
     const statusText = host.querySelector('#mod-helper-osu-status');
     let isConnected = false;
+    function busy(active, label) {
+        connectBtn.disabled = active;
+        connectBtn.classList.toggle('kmh-is-loading', active);
+        connectBtn.setAttribute('aria-busy', String(active));
+        const content = connectBtn.querySelector('.btn-osu-big__content');
+        if (!content) return;
+        const icon = content.querySelector('i');
+        const caption = content.querySelector('.kmh-auth-button-label');
+        if (icon) icon.className = active ? 'fas fa-spinner fa-spin' : isConnected ? 'fas fa-unlink' : 'fas fa-link';
+        if (caption) caption.textContent = label || (isConnected ? 'Disconnect osu! Account' : 'Connect osu! Account');
+    }
+    connectBtn.classList.remove('kmh-primary-button');
+    connectBtn.classList.add('btn-osu-big', 'kmh-auth-native-button');
+    connectBtn.innerHTML = '<span class="btn-osu-big__content"><span class="btn-osu-big__icon-inline btn-osu-big__icon-inline--left"><i class="fas fa-link" aria-hidden="true"></i></span><span class="kmh-auth-button-label">Connect osu! Account</span></span>';
+
 
     function render(status) {
         const connected = !!(status && status.connected);
         const expired = !!(status && status.expired);
-        isConnected = connected && !expired;
+        const refreshable = !!(status && status.refreshable);
+        isConnected = connected;
 
-        connectBtn.textContent = isConnected ? 'Disconnect osu! Account' : 'Connect osu! Account';
-        connectBtn.classList.toggle('btn-osu-big--disabled', false);
-        connectBtn.disabled = false;
+        busy(false);
 
         if (statusText) {
             statusText.classList.toggle('kmh-auth-status-ok', isConnected);
-            statusText.classList.toggle('kmh-auth-status-error', !isConnected);
+            statusText.classList.toggle('kmh-auth-status-error', !isConnected && expired);
+            statusText.classList.toggle('kmh-auth-status-idle', !isConnected && !expired);
+            statusText.removeAttribute('style');
             if (isConnected) {
-                statusText.textContent = 'Status: Connected';
-                statusText.style.color = '#a6cc2b';
-            } else if (connected && expired) {
-                statusText.textContent = 'Status: Session expired — reconnect';
-                statusText.style.color = '#ff6666';
+                statusText.textContent = expired && refreshable
+                    ? 'Connected · token refresh available'
+                    : 'Connected';
+            } else if (expired) {
+                statusText.textContent = 'Session expired · reconnect';
             } else {
-                statusText.textContent = 'Status: Not Connected';
-                statusText.style.color = '#ff6666';
+                statusText.textContent = 'Not connected';
             }
         }
     }
 
     function refreshStatus() {
         chrome.runtime.sendMessage({ action: 'getAuthStatus' }, (response) => {
+            if (chrome.runtime.lastError || response?.error) {
+                if (statusText) {
+                    statusText.textContent = 'Connection status unavailable';
+                    statusText.classList.remove('kmh-auth-status-ok', 'kmh-auth-status-idle');
+                    statusText.classList.add('kmh-auth-status-error');
+                }
+                busy(false);
+                connectBtn.disabled=true;
+                return;
+            }
             render(response && response.data);
         });
     }
@@ -78,18 +103,18 @@ function setupOsuAuthListeners(connectBtn, host = document) {
     refreshStatus();
 
     connectBtn.addEventListener('click', () => {
-        connectBtn.disabled = true;
-        connectBtn.textContent = isConnected ? 'Disconnecting…' : 'Connecting…';
+        busy(true, isConnected ? 'Disconnecting…' : 'Connecting to osu!…');
 
         const action = isConnected ? 'disconnectAuth' : 'startAuthFlow';
         chrome.runtime.sendMessage({ action }, (response) => {
-            if (response && response.error) {
+            const err = chrome.runtime.lastError?.message || response?.error || (!response ? 'No response from extension' : null);
+            if (err) {
                 if (statusText) {
-                    statusText.textContent = `Status: ${response.error}`;
-                    statusText.style.color = '#ff6666';
+                    statusText.textContent = `Connection failed: ${err}`;
+                    statusText.classList.remove('kmh-auth-status-ok', 'kmh-auth-status-idle');
+                    statusText.classList.add('kmh-auth-status-error');
                 }
-                connectBtn.disabled = false;
-                connectBtn.textContent = isConnected ? 'Disconnect osu! Account' : 'Connect osu! Account';
+                busy(false);
                 return;
             }
 

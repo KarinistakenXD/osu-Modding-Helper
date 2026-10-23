@@ -1,9 +1,4 @@
 /* v1.1.1 local review 4: restrained syntax design and stable osu!web layout. */
-/* Source inspector belongs to the Source ROW, never the global edit controls. */
-.beatmapset-info__row:has(>.kmh111-inspect-entry),.kmh111-source-fallback {position:relative!important;padding-right:34px!important}
-.beatmapset-info__row>.kmh111-inspect-entry{position:absolute!important;top:0!important;right:36px!important;left:auto!important;bottom:auto!important;inset-inline-start:auto!important;inset-inline-end:36px!important;margin:0!important;width:26px!important;height:26px!important;min-width:26px!important;border-radius:5px!important;background:hsl(var(--hsl-b3,200,10%,25%))!important;box-shadow:none!important;}
-.beatmapset-info__row>.kmh111-inspect-entry:hover{background:hsl(var(--hsl-h2,200,50%,45%))!important}
-.kmh111-empty-source{font:11px/1.5 var(--font-default,Torus,Inter,sans-serif);color:hsl(var(--hsl-l1,200,40%,80%))}
 /* Download buttons should not consume the whole hero alongside alternative links. */
 .beatmapset-header .kmh111-download-action-row,.beatmapset-header .kmh111-has-download-toggle{width:auto!important;max-width:min(310px,100%)!important;flex:0 1 310px!important}
 .beatmapset-header .kmh111-download-action-row > .btn-osu-big{min-width:90px!important;max-width:260px!important}

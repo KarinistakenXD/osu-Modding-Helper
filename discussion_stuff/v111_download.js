@@ -43,13 +43,13 @@
   const grid=$('div','kmh111-dl-grid');
   const full=$('div','kmh111-dl-group');full.append($('h4',null,'Beatmapset (.osz)'));arow(full,'Official download',u.official,'Signed-in osu!web · video availability varies');arow(full,'Official · no video',u.officialNoVideo,'Requests the no-video variant');arow(full,'Mirror · full',u.mirror,'Hinai multi-source mirror · opens externally');arow(full,'Mirror · no video',u.mirrorNoVideo,'Alternative for pending / graveyard where available');arow(full,'Nerinyan mirror',`https://nerinyan.moe/`,'Open mirror site · search by set ID');grid.append(full);
   const media=$('div','kmh111-dl-group');media.append($('h4',null,'Artwork'));arow(media,'Cover image',u.cover,'Beatmapset cover (when available)');grid.append(media);
-  const metadataGroup=$('div','kmh111-dl-group');metadataGroup.append($('h4',null,'Metadata'));const tools=$('div','kmh111-dl-inline');const copy=$('button','kmh111-dl-action','Copy metadata'),txt=$('button','kmh111-dl-action','Export .txt'),json=$('button','kmh111-dl-action','Export .json');[copy,txt,json].forEach(b=>b.type='button');copy.onclick=()=>clipboard(JSON.stringify(metadata(set),null,2),copy);txt.onclick=()=>exportMetadata(set,'txt');json.onclick=()=>exportMetadata(set,'json');tools.append(copy,txt,json);metadataGroup.append(tools);
+  const metadataGroup=$('div','kmh111-dl-group kmh111-dl-group--metadata');metadataGroup.append($('h4',null,'Metadata'));const tools=$('div','kmh111-dl-inline kmh111-dl-inline--metadata');const copy=$('button','kmh111-dl-action','Copy metadata'),txt=$('button','kmh111-dl-action','Export .txt'),json=$('button','kmh111-dl-action','Export .json');[copy,txt,json].forEach(b=>b.type='button');copy.onclick=()=>clipboard(JSON.stringify(metadata(set),null,2),copy);txt.onclick=()=>exportMetadata(set,'txt');json.onclick=()=>exportMetadata(set,'json');tools.append(copy,txt,json);metadataGroup.append(tools);
   const readOsu=$('button','kmh111-dl-action','Read .osu metadata');readOsu.type='button';
   readOsu.onclick=async()=>{readOsu.disabled=true;const previous=readOsu.textContent;readOsu.textContent='Reading .osu…';
     try{const result=await fetchOsuMetadata(set);downloadBlob(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}),`${set.id}-osu-metadata.json`);readOsu.textContent='Exported .osu metadata';}
     catch(err){readOsu.textContent='Unavailable: '+String(err.message).slice(0,75);}
     finally{setTimeout(()=>{if(readOsu.isConnected){readOsu.disabled=false;readOsu.textContent=previous;}},2200);}
-  };metadataGroup.append(readOsu);
+  };tools.append(readOsu);
   grid.append(metadataGroup);
   wrap.append(grid);
   const trigger=$('button','kmh111-dl-toggle');trigger.type='button';trigger.setAttribute('aria-expanded','false');trigger.setAttribute('aria-controls','kmh111-download-popover');trigger.setAttribute('title','More download and export options');trigger.setAttribute('aria-label','More download and export options');trigger.innerHTML='<span class="fas fa-plus" aria-hidden="true"></span>';

@@ -2,6 +2,9 @@
 // Place extension tools in a separate group INSIDE the native message toolbar.
 // Always-on, independent entry: never rely on the site's editor hierarchy.
 let kmhDockAuthLastChecked = 0;
+let kmhDockAuthRequest = false;
+let kmhDockAuthRetry = null;
+let kmhDockAuthFailures = 0;
 function ensureHelperEntry() {
     const isDiscussion = /^\/beatmapsets\/\d+\/discussion(?:\/|$)/.test(location.pathname);
     let entry = document.getElementById('kmh-helper-entry');
@@ -9,7 +12,7 @@ function ensureHelperEntry() {
     if (!entry) {
         entry = document.createElement('div');
         entry.id = 'kmh-helper-entry';
-        entry.innerHTML = '<button type="button" class="kmh-entry-main" aria-label="Open Modding Helper settings" title="Open Modding Helper settings"><i class="fas fa-cog" aria-hidden="true"></i><span>Helper settings</span></button><button type="button" class="kmh-entry-connect" title="Connect osu! to unlock your personal discussions">Connect osu! <i class="fas fa-arrow-right" aria-hidden="true"></i></button>';
+        entry.innerHTML = '<button type="button" class="kmh-entry-main" aria-label="Open Modding Helper settings" title="Open Modding Helper settings"><i class="fas fa-cog" aria-hidden="true"></i><span>Helper settings</span></button><button type="button" class="kmh-entry-connect" title="Connect osu! to unlock your personal discussions" hidden>Connect osu! <i class="fas fa-arrow-right" aria-hidden="true"></i></button>';
         const opener = entry.querySelector('.kmh-entry-main');
         opener.addEventListener('click', () => toggleModHelperSettings(opener));
         entry.querySelector('.kmh-entry-connect').addEventListener('click', () => {
@@ -20,24 +23,67 @@ function ensureHelperEntry() {
         });
         document.body.append(entry);
     }
-    // Hide redundant floating launcher once a connected user has the inline toolbar.
+    // Do not display a disconnected CTA until the initial auth lookup finishes.
     entry.hidden = entry.classList.contains('is-connected') && !!document.querySelector('.beatmap-discussion-new .kmh-editor-actions');
-    if (Date.now() - kmhDockAuthLastChecked > 240000) refreshHelperEntryAuth();
+    if (!kmhDockAuthLastChecked || Date.now() - kmhDockAuthLastChecked > 60000) refreshHelperEntryAuth();
 }
-function refreshHelperEntryAuth() {
+function refreshHelperEntryAuth(force = false) {
     const entry = document.getElementById('kmh-helper-entry');
-    if (!entry) return;
-    kmhDockAuthLastChecked = Date.now();
-    try { chrome.runtime.sendMessage({action:'getAuthStatus'}, response => {
-        if (chrome.runtime.lastError || !entry.isConnected) return;
-        const connected = !!response?.data?.connected;
-        entry.classList.toggle('is-connected',connected);
+    if (!entry || !/^\/beatmapsets\/\d+\/discussion(?:\/|$)/.test(location.pathname)) return;
+    if (kmhDockAuthRequest) return;
+    if (!force && kmhDockAuthLastChecked && Date.now() - kmhDockAuthLastChecked < 60000) return;
+    kmhDockAuthRequest = true;
+    try { chrome.runtime.sendMessage({ action: 'getAuthStatus' }, response => {
+        kmhDockAuthRequest = false;
+        if (!entry.isConnected) return;
+        if (chrome.runtime.lastError || response?.error || !response?.data || typeof response.data.connected !== 'boolean') {
+            // A service-worker startup interruption is unknown, not 'disconnected'.
+            // Do not lock in a false negative by updating the successful-check clock.
+            kmhDockAuthFailures++;
+            entry.querySelector('.kmh-entry-connect').hidden = true;
+            entry.querySelector('.kmh-entry-main').title = 'Modding Helper settings · connection status unavailable';
+            clearTimeout(kmhDockAuthRetry);
+            kmhDockAuthRetry = setTimeout(() => refreshHelperEntryAuth(true), Math.min(12000, 800 * 2 ** Math.min(kmhDockAuthFailures, 4)));
+            return;
+        }
+        clearTimeout(kmhDockAuthRetry);
+        kmhDockAuthFailures = 0;
+        kmhDockAuthLastChecked = Date.now();
+        const connected = response.data.connected;
+        entry.classList.toggle('is-connected', connected);
         entry.hidden = connected && !!document.querySelector('.beatmap-discussion-new .kmh-editor-actions');
         entry.querySelector('.kmh-entry-connect').hidden = connected;
         entry.querySelector('.kmh-entry-main').title = connected ? 'Modding Helper settings · osu! connected' : 'Modding Helper settings · osu! not connected';
-    }); } catch { /* Browser may have invalidated the content script during extension update. */ }
+    }); } catch {
+        kmhDockAuthRequest = false;
+        clearTimeout(kmhDockAuthRetry);
+        kmhDockAuthRetry = setTimeout(() => refreshHelperEntryAuth(true), 2000);
+    }
 }
-window.addEventListener('mod-helper-osu-auth-changed', () => { kmhDockAuthLastChecked = 0; refreshHelperEntryAuth(); });
+function invalidateHelperAuth() { kmhDockAuthLastChecked = 0; clearTimeout(kmhDockAuthRetry); refreshHelperEntryAuth(true); }
+window.addEventListener('mod-helper-osu-auth-changed', invalidateHelperAuth);
+window.addEventListener('focus', invalidateHelperAuth);
+window.addEventListener('pageshow', invalidateHelperAuth);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) invalidateHelperAuth(); });
+chrome.storage?.onChanged?.addListener?.((changes, area) => { if (area === 'local' && changes.osuAuthToken) invalidateHelperAuth(); });
+// The toolbar represents actual open panels, not merely the last button clicked.
+window.KmhSyncQuickToggles = function syncQuickToggles() {
+    const rc = document.getElementById('custom-rc-panel');
+    const rcOpen = !!rc && rc.isConnected && rc.style.display !== 'none' && !rc.hidden;
+    const workspace = document.querySelector('.kmh-workspace-overlay');
+    const mineOpen = !!workspace && !workspace.hidden && workspace.isConnected;
+    document.querySelectorAll('.kmh-editor-actions').forEach(actions => {
+        for (const [selector, active] of [
+            ['[data-kmh-open-rc]', rcOpen],
+            ['[data-kmh-open-finder]', mineOpen]
+        ]) {
+            const button = actions.querySelector(selector);
+            if (!button) continue;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-pressed', String(active));
+        }
+    });
+};
 // Stable edit-area anchor. Does not change the native New Discussion heading,
 // pin button, formatting icons, or submission buttons.
 function injectToolbar() {
@@ -61,9 +107,10 @@ function injectToolbar() {
                 activeHighlight.setAttribute('aria-pressed', String(enabled));
                 activeHighlight.classList.toggle('is-active', enabled);
             }
-            window.KmhLinkPreview?.reconcile?.(box, actions.querySelector('[data-kmh-open-preview]'));
+            window.KmhLinkPreview?.reconcile?.(box);
             actions.hidden = false;
             window.KmhDraftCoach?.reconcile?.(box);
+            window.KmhSyncQuickToggles?.();
             return;
         }
         nativeToolbar.querySelectorAll(':scope > .kmh-editor-actions').forEach(node => node.remove());
@@ -82,21 +129,21 @@ function injectToolbar() {
             return b;
         };
         const finder = makeButton('My discussions','fa-comments',b=>window.KmhWorkspace?.open?.('mine',b),'finder');
-        const book = makeButton('Ranking Criteria','fa-book',b=>window.KmhOpenRC?.(b),'rc');
-        const preview = makeButton('Toggle linked previews','fa-paperclip',b=>window.KmhLinkPreview?.toggle?.(b),'preview');
+        const book = makeButton('Ranking Criteria','fa-book',b=>{window.KmhOpenRC?.(b);window.KmhSyncQuickToggles?.();},'rc');
         const md = makeButton('Highlight Markdown in editor','fa-highlighter',b=>{const textarea=b.closest('.beatmap-discussion-new')?.querySelector('.beatmap-discussion-new__message textarea');if(textarea)window.KmhMarkdownOverlay?.toggle?.(textarea);},'markdown');
         md.setAttribute('data-kmh-toggle-markdown','');md._kmhField=box.querySelector('.beatmap-discussion-new__message textarea');
-        const coach = makeButton('Toggle Draft Coach','fa-clipboard-check',b=>window.KmhDraftCoach?.open?.(b),'coach','Coach');
-        coach.classList.add('btn-osu-big','kmh-editor-action-large');
+        const coach = makeButton('Toggle Draft Coach','fa-clipboard-check',b=>window.KmhDraftCoach?.open?.(b),'coach');
+        coach.setAttribute('aria-pressed','false');
         const settings = makeButton('Modding Helper Settings','fa-cog',b=>toggleModHelperSettings(b),'settings','Settings');
         settings.classList.add('btn-osu-big','kmh-editor-action-large');
         finder.hidden = !isModHelperFeatureEnabled('modWorkspace');
         book.hidden = !isModHelperFeatureEnabled('rcBook');
-        actions.append(finder,book,preview,md,coach,settings);
-        window.KmhMarkdownOverlay?.reconcile?.();
-        window.KmhLinkPreview?.reconcile?.(box, preview);
+        actions.append(finder,book,md,coach,settings);
         nativeToolbar.append(actions);
+        window.KmhMarkdownOverlay?.reconcile?.();
+        window.KmhLinkPreview?.reconcile?.(box);
         window.KmhDraftCoach?.reconcile?.(box);
+        window.KmhSyncQuickToggles?.();
     });
 }
 function toggleModHelperSettings(opener) {
@@ -114,8 +161,8 @@ function toggleModHelperSettings(opener) {
             ['modWorkspace','Mod finder','Search your modposts, favourites and mapset discussion history.'],
             ['draftRecovery','Local draft recovery','Save unsent notes; restore them from My discussions.']
         ]},
-        integrations:{name:'Integrations',icon:'fa-plug',description:'Connect osu! and configure optional screenshot hosting.',features:[
-            ['imageUploader','Image paste & drop','Upload images to s-ul.eu using your own API key.']
+        integrations:{name:'Integrations',icon:'fa-plug',description:'Connect osu! and configure image and attachment hosting.',features:[
+            ['imageUploader','Image paste & drop','Paste or drop an attachment using your selected hosting provider.']
         ]}
     };
     const modal=document.createElement('div');modal.id='mod-helper-settings-modal';modal.className='kmh-overlay kmh-settings-redesign';
@@ -130,12 +177,29 @@ function toggleModHelperSettings(opener) {
           ${Object.entries(sections).map(([id,s])=>`<section data-settings-section="${id}" class="kmh-settings-section"><div class="kmh-settings-section-heading"><span class="kmh-eyebrow">PREFERENCES</span><h3>${s.name}</h3><p>${s.description}</p></div>
           <div class="kmh-feature-list">${s.features.map(([key,title,description])=>`<label class="kmh-feature-row"><div class="kmh-feature-copy"><strong>${title}</strong><small>${description}</small></div><input type="checkbox" data-feature="${key}" ${isModHelperFeatureEnabled(key)?'checked':''}><span class="kmh-switch" aria-hidden="true"></span></label>`).join('')}</div>
           ${id==='integrations'?`<div class="kmh-settings-integration kmh-auth-settings"><h4><i class="fas fa-user-check"></i> Your osu! account</h4><p>Connect to unlock My discussions and thread activity. Local drafts and Ranking Criteria work without signing in.</p><p class="kmh-trust-note">OAuth token exchange uses the existing third-party Cloudflare Worker configured in this extension, not an osu!-operated endpoint. Connect only if you trust its operator.</p><div class="kmh-integration-controls"><button type="button" id="mod-helper-osu-connect" class="kmh-primary-button">Connect osu! account</button><span id="mod-helper-osu-status" role="status">Checking connection…</span></div></div>
-          <div class="kmh-settings-integration"><h4>s-ul.eu image uploading</h4>
-          <p>Optional image paste / drag-and-drop into osu!'s discussion editor. Images are uploaded to your s-ul.eu account and inserted as Markdown. Ordinary text remains native.</p>
-          <label for="modal-sul-key">s-ul.eu API key</label><input type="password" id="modal-sul-key" autocomplete="off" placeholder="Paste your s-ul.eu API key">
-          <details class="kmh-tutorial"><summary><i class="fas fa-question-circle"></i> How to set up s-ul.eu</summary>
-            <ol><li><a href="https://s-ul.eu/" target="_blank" rel="noopener noreferrer">Sign in at s-ul.eu</a> and open your account settings.</li><li>Find your upload/API key in your own account and copy it.</li><li>Paste the key above and select <b>Save changes</b>.</li><li>Enable <b>Image paste & drop</b>, then paste a screenshot or drop an image into the discussion editor.</li><li>Only uploaded files are intercepted. If osu!web starts supporting native image upload, disable the option to avoid conflicts.</li></ol>
-          </details><small>Key stays in Chrome local extension storage; uploads are sent to s-ul.eu. Never share this key.</small></div>`:''}</section>`).join('')}
+          <div class="kmh-settings-integration kmh-host-settings"><h4><i class="fas fa-cloud-upload-alt"></i> Hosting provider</h4>
+          <p>Choose where screenshots and files are published. Smart selects an eligible persistent host before the upload; it never republishes to another host after a failed or uncertain request.</p>
+          <label for="modal-upload-provider">Upload service</label>
+          <select id="modal-upload-provider" class="kmh-host-select">
+            <option value="smart">Smart — prefer your configured s-ul.eu, otherwise Catbox</option>
+            <option value="sul">s-ul.eu — personal API key</option>
+            <option value="catbox">Catbox — optional account userhash</option>
+            <option value="imgbb">ImgBB — image-only API key</option>
+            <option value="litterbox">Litterbox — temporary files, explicit choice only</option>
+          </select>
+          <div class="kmh-host-credentials">
+            <label for="modal-sul-key">s-ul.eu API key</label><input type="password" id="modal-sul-key" autocomplete="off" placeholder="Existing s-ul.eu upload key">
+            <label for="modal-catbox-key">Catbox userhash (optional)</label><input type="password" id="modal-catbox-key" autocomplete="off" placeholder="Leave empty for anonymous Catbox">
+            <label for="modal-imgbb-key">ImgBB API key (optional)</label><input type="password" id="modal-imgbb-key" autocomplete="off" placeholder="Required when ImgBB is selected">
+            <label for="modal-litterbox-expiry">Litterbox expiry</label><select id="modal-litterbox-expiry" class="kmh-host-select"><option value="1h">1 hour</option><option value="12h">12 hours</option><option value="24h">24 hours</option><option value="72h">72 hours</option></select>
+          </div>
+          <small class="kmh-host-note">Uploads are public. Catbox may be anonymous, meaning you cannot manage those files later. ImgBB requires an API key. Host storage quota is not exposed by these APIs; the extension cannot reliably know how much space remains. Files over 48 MB exceed this build's upload transport limit. Temporary Litterbox links are unsuitable for permanent modding evidence.</small>
+          <details class="kmh-tutorial"><summary><i class="fas fa-question-circle"></i> Provider setup and supported Markdown</summary><ol>
+            <li><a href="https://catbox.moe/tools.php" target="_blank" rel="noopener noreferrer">Catbox</a> works anonymously, or with your account userhash.</li>
+            <li><a href="https://api.imgbb.com/" target="_blank" rel="noopener noreferrer">ImgBB</a> requires a key and only accepts images.</li>
+            <li><a href="https://s-ul.eu/" target="_blank" rel="noopener noreferrer">s-ul.eu</a> uses your existing personal API key.</li>
+            <li>Paste or drag files into a discussion editor. GIF, PNG, JPEG, WebP and other browser-renderable images use <code>![name](direct-url)</code>. Other supported files use normal links.</li>
+          </ol></details></div>`:''}</section>`).join('')}
         </div></div><footer class="kmh-settings-footer"><a href="https://osu.ppy.sh/users/28330584" target="_blank" rel="noopener noreferrer">Made by Karin- ↗</a><div><span id="modal-settings-status" role="status"></span><button type="button" class="kmh-outline-button kmh-settings-cancel">Cancel</button><button type="button" id="modal-settings-save" class="kmh-primary-button">Save changes</button></div></footer>
       </section>`;
     document.body.append(modal);
@@ -166,10 +230,21 @@ function toggleModHelperSettings(opener) {
     modal.querySelectorAll('[data-settings-tab]').forEach(button=>button.onclick=()=>setSection(button.dataset.settingsTab));
     setSection('general');
     setupOsuAuthListeners(modal.querySelector('#mod-helper-osu-connect'), modal);
-    chrome.storage.local.get(['sulApiKey'],values=>{const key=modal.querySelector('#modal-sul-key');if(key)key.value=values.sulApiKey||'';});
+    chrome.storage.local.get(['sulApiKey','catboxUserhash','imgbbApiKey','uploadProvider','uploadLitterboxExpiry'],values=>{
+        const pair={'modal-sul-key':'sulApiKey','modal-catbox-key':'catboxUserhash','modal-imgbb-key':'imgbbApiKey'};
+        Object.entries(pair).forEach(([id,key])=>{const el=modal.querySelector('#'+id);if(el)el.value=values[key]||'';});
+        modal.querySelector('#modal-upload-provider').value=values.uploadProvider||'smart';
+        modal.querySelector('#modal-litterbox-expiry').value=values.uploadLitterboxExpiry||'24h';
+    });
     modal.querySelector('#modal-settings-save').onclick=()=>{
         const save=modal.querySelector('#modal-settings-save');save.disabled=true;
-        const values={sulApiKey:modal.querySelector('#modal-sul-key').value.trim()};
+        const values={
+            sulApiKey:modal.querySelector('#modal-sul-key').value.trim(),
+            catboxUserhash:modal.querySelector('#modal-catbox-key').value.trim(),
+            imgbbApiKey:modal.querySelector('#modal-imgbb-key').value.trim(),
+            uploadProvider:modal.querySelector('#modal-upload-provider').value,
+            uploadLitterboxExpiry:modal.querySelector('#modal-litterbox-expiry').value
+        };
         modal.querySelectorAll('[data-feature]').forEach(input=>values[input.dataset.feature]=input.checked);
         chrome.storage.local.set(values,()=>{
             save.disabled=false;

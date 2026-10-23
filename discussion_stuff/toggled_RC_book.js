@@ -85,7 +85,7 @@ function toggled_RC_book() {
   function open(event){
     event?.preventDefault?.();
     let panel=document.getElementById('custom-rc-panel');
-    if(panel){panel.style.display=panel.style.display==='none'?'flex':'none';if(panel.style.display!=='none')sync(panel);return;}
+    if(panel){panel.style.display=panel.style.display==='none'?'flex':'none';if(panel.style.display!=='none')sync(panel);window.KmhSyncQuickToggles?.();return;}
     panel=document.createElement('div');panel.id='custom-rc-panel';panel.className='kmh-rc-drawer';
     panel.innerHTML=`<div class="kmh-rc-drawer__header"><div class="kmh-rc-drawer__heading"><span data-rc-panel-title class="kmh-rc-drawer__title">Ranking Criteria</span><span data-rc-difficulty class="kmh-rc-drawer__subtitle"></span></div><button type="button" id="close-rc-panel" class="kmh-rc-drawer__close" aria-label="Close Ranking Criteria panel" title="Close Ranking Criteria"><i class="fas fa-times" aria-hidden="true"></i></button></div>
      <nav class="kmh111-rc-nav" aria-label="Ranking Criteria topics"><select data-kmh-rc-topic aria-label="RC topic"></select><a data-kmh-rc-external href="https://osu.ppy.sh/wiki/en/Ranking_criteria" target="_blank" rel="noopener noreferrer">Open in wiki ↗</a></nav>
@@ -97,8 +97,9 @@ function toggled_RC_book() {
     topics.addEventListener('change',()=>{panel.dataset.kmhRcTopic=topics.value;sync(panel);});
     panel.querySelector('[data-kmh-rc-map]').addEventListener('change',e=>{panel.dataset.kmhMapId=e.target.value;panel.dataset.kmhManualTier='0';sync(panel);});
     panel.querySelector('[data-kmh-rc-tier]').addEventListener('change',e=>{panel.dataset.kmhTier=e.target.value;panel.dataset.kmhManualTier='1';sync(panel);});
-    panel.querySelector('#close-rc-panel').addEventListener('click',()=>panel.style.display='none');
+    panel.querySelector('#close-rc-panel').addEventListener('click',()=>{panel.style.display='none';window.KmhSyncQuickToggles?.();});
     sync(panel);
+    window.KmhSyncQuickToggles?.();
   }
   window.KmhOpenRC=open;
   const openPanel=document.getElementById('custom-rc-panel');

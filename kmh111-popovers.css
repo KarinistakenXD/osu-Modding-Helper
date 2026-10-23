@@ -26,9 +26,6 @@
 .kmh-editor-actions [data-kmh-open-coach] .kmh-tool-label{display:none!important}
 .kmh-editor-actions .kmh-editor-tool{box-shadow:none!important}
 /* Keep native osu!web post-category colours. Delayed dynamic recolouring caused a flash. */
-/* Metadata pen belongs in the upper-right corner, not below the tags. */
-.beatmapset-info__box--meta:has(>.kmh111-inspect-entry),.beatmapset-info__box:has(>.kmh111-inspect-entry),.beatmapset-header__info:has(>.kmh111-inspect-entry){position:relative!important}
-.kmh111-inspect-entry{position:absolute!important;top:7px!important;right:7px!important;left:auto!important;bottom:auto!important;z-index:4!important;display:inline-grid!important;place-items:center!important;width:30px!important;height:30px!important;min-width:30px!important;padding:0!important;margin:0!important;font-size:12px!important;border-radius:50%!important;background:hsl(var(--hsl-h2,200,50%,45%))!important;border:0!important}
 .kmh111-inspector-grid{grid-template-columns:minmax(105px,.35fr) 1fr}
 @media(max-width:560px){.kmh111-floating{width:calc(100vw - 20px)!important}.kmh111-dl-toggle{width:30px!important;flex-basis:30px!important}.kmh111-dl-heading{gap:4px}}
 

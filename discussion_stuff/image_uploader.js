@@ -1,19 +1,31 @@
-/* Reliable image/link paste and drag-and-drop for native osu! discussion editors.
-   Text URLs are converted ONLY when they are recognizable direct image/screenshot links.
-   Actual image files require user-configured s-ul.eu; no OAuth is required for this. */
+/* Paste/drop into native osu! editors, provider selection occurs in background.
+   Explicit Markdown images use any URL (not only extensions); visual preview decides
+   whether a URL actually renders as an image. */
 (() => {
  'use strict';
- let hasKey=false;
- chrome.storage.local.get(['sulApiKey'], d=>{hasKey=!!d.sulApiKey?.trim();});
- chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes.sulApiKey)hasKey=!!changes.sulApiKey.newValue?.trim();});
+
  const allowedArea='.beatmap-discussion-new, .beatmap-discussion-post--new-reply, .beatmap-discussion-post__message--editor, .beatmap-discussion-post--reply, .beatmap-discussion--review, .beatmap-discussion-review';
  const editable='textarea, [contenteditable="true"]';
- const imageExt=/\.(png|jpe?g|gif|webp|avif|bmp)(?:\?.*)?$/i;
+ const imageExt=/\.(?:png|jpe?g|gif|webp|avif|apng|bmp|ico|svg)(?:$|[?#])/i;
  // s-ul is a file host, but some formats are restricted by the service.
  // Never upload executables or arbitrary unknown file types by accident.
- const safeFile=/\.(?:png|jpe?g|gif|webp|avif|bmp|svg|pdf|txt|md|json|csv|xml|log|osu|osz|zip|7z|rar|mp3|ogg|wav|mp4|webm)$/i;
- const isImageFile=file=>file.type.startsWith('image/')||/\.(png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(file.name||'');
- const fileAllowed=file=>!!file&&safeFile.test(file.name||'');
+ const safeFile=/\.(?:png|jpe?g|gif|webp|avif|apng|bmp|svg|ico|tiff?|heic|heif|jxl|pdf|txt|md|json|csv|xml|log|osu|osz|zip|7z|rar|mp3|ogg|wav|mp4|webm)$/i;
+ const webImage=/\.(?:png|jpe?g|gif|webp|avif|apng|bmp|svg|ico)$/i;
+ const mimeImageExt = Object.freeze({
+   'image/png':'png', 'image/jpeg':'jpg', 'image/gif':'gif', 'image/webp':'webp',
+   'image/avif':'avif', 'image/apng':'apng', 'image/bmp':'bmp',
+   'image/svg+xml':'svg', 'image/x-icon':'ico', 'image/vnd.microsoft.icon':'ico'
+ });
+ const imageMime=file=>mimeImageExt[String(file?.type||'').trim().toLowerCase()]||null;
+ const isImageFile=file=>webImage.test(file.name||'') || !!imageMime(file);
+ // Clipboard images often have no extension. Trust only an allowlisted image MIME
+ // for *extensionless* files; a forged MIME must not approve named .exe files.
+ const fileAllowed=file=>!!file && (safeFile.test(file.name||'') ||
+   (!/\.[^./\\]+$/.test(file.name||'') && !!imageMime(file)));
+ const transportName=file=>{
+   const name=String(file?.name||'').trim();
+   return safeFile.test(name)?name:(imageMime(file)?`${name||'clipboard-image'}.${imageMime(file)}`:name);
+ };
  const escapeLabel=name=>String(name||'Attachment').replace(/[\[\]\r\n]/g,'').replace(/[()]/g,'_').slice(0,100);
  function inside(){return /^\/beatmapsets\/\d+\/discussion(?:\/|$)/.test(location.pathname);}
  function findField(target){
@@ -58,41 +70,48 @@
    if(u.hostname==='osu.ppy.sh'&&/^\/ss\/\d+(?:\/[a-zA-Z0-9]+)?\/?$/.test(u.pathname))return true;
    // This host serves extensionless image URLs; if not an image the preview will fall back to a link.
    if(/(^|\.)s-ul\.eu$/i.test(u.hostname)&&u.pathname!=='/'&& !/\.(pdf|zip|osz|txt|mp4|webm)$/i.test(u.pathname))return true;
+   if(['files.catbox.moe','litter.catbox.moe','i.ibb.co'].includes(u.hostname)&&u.pathname!=='/'&&!/\.(pdf|zip|osz|txt|mp4|webm)$/i.test(u.pathname))return true;
    return false;
  }
- function toast(message,action){
+ function toast(message,action,explicitPhase){
    document.getElementById('kmh-upload-status-toast')?.remove();
-   const el=document.createElement('div');el.id='kmh-upload-status-toast';el.setAttribute('role','status');
-   el.dataset.phase=/uploading|reading/i.test(message)?'loading':/failed|error|could not|requires|larger/i.test(message)?'error':'success';
+   const el=document.createElement('div');el.id='kmh-upload-status-toast';
+   el.dataset.phase=explicitPhase||(/uploading|reading/i.test(message)?'loading':/failed|error|could not|requires|larger|rejected|exceeds/i.test(message)?'error':'success');
+   el.setAttribute('role',el.dataset.phase==='error'?'alert':'status');
    const span=document.createElement('span');span.textContent=message;el.append(span);
    if(action){const button=document.createElement('button');button.type='button';button.textContent='Open settings';button.onclick=()=>{el.remove();const opener=document.querySelector('[data-kmh-open-settings]')||document.querySelector('.kmh-entry-main');opener?.click();document.querySelector('[data-settings-tab="integrations"]')?.click();};el.append(button);}
-   document.body.append(el);setTimeout(()=>el.remove(),7000);
+   if(el.dataset.phase==='error'){const dismiss=document.createElement('button');dismiss.type='button';dismiss.textContent='Dismiss';dismiss.setAttribute('aria-label','Dismiss upload error');dismiss.onclick=()=>el.remove();el.append(dismiss);}
+   document.body.append(el);setTimeout(()=>el.remove(),el.dataset.phase==='error'?14000:7000);
  }
  function upload(field,file){
    if(!file)return;
-   if(!fileAllowed(file)){toast('This file type is not supported. Choose an image, document, .osu/.osz, archive or media file.');return;}
-   if(!hasKey){toast('File upload requires your s-ul.eu API key.',true);return;}
-   if(file.size>20*1024*1024){toast('File exceeds the 20 MB upload limit.');return;}
+   if(!fileAllowed(file)){toast('This file type is not supported. Choose an image, document, .osu/.osz, archive or media file.',false,'error');return;}
+   // Check osu!'s image-embed limits BEFORE reading bytes or contacting any host.
+   const osuSizeCheck=window.KmhUploadLimits?.validate(file);
+   if(osuSizeCheck && !osuSizeCheck.ok){toast(osuSizeCheck.message,false,'error');return;}
+   // Data URL IPC is intentionally capped to prevent multi-hundred-MB messages from freezing osu!web.
+   if(file.size>48*1000000){toast('Files over 48 MB exceed this extension’s current upload transport limit.',false,'error');return;}
    const token=`[uploading:${crypto.randomUUID?.()||('kmh-'+Date.now()+'-'+Math.random().toString(36).slice(2))}]`;
    const canReplace=field instanceof HTMLTextAreaElement;
    if(canReplace)nativeInsert(field,token);
-   toast(`Uploading ${file.name||'file'} to s-ul.eu…`);
+   toast(`Uploading ${file.name||'file'} with your chosen image host…`);
    const reader=new FileReader();
    reader.onerror=()=>{if(canReplace)replacePlaceholder(field,token,'');toast('Could not read the image file.');};
    reader.onload=()=>{
      try{
-       chrome.runtime.sendMessage({action:'uploadFile',imageData:reader.result,fileName:file.name||'clipboard.png',fileType:file.type}, response=>{
+       chrome.runtime.sendMessage({action:'uploadFile',imageData:reader.result,fileName:transportName(file),fileType:file.type}, response=>{
          if(chrome.runtime.lastError||!response?.url){
            if(canReplace)replacePlaceholder(field,token,'');
            toast('Image upload failed: '+(response?.error||chrome.runtime.lastError?.message||'unknown error'),true);
            return;
          }
-         const name=escapeLabel(file.name||'Image');
-         const markdown=isImageFile(file)?`![${name}](${response.url})`:`[${name}](${response.url})`;
+         const name=escapeLabel(transportName(file)||'Image');
+         // Use the provider's verified direct URL, never a thumbnail/viewer URL.
+         const markdown=(response.image&&isImageFile(file))?`![${name}](${response.url})`:`[${name}](${response.url})`;
          if(canReplace)replacePlaceholder(field,token,markdown);else nativeInsert(field,markdown);
          document.dispatchEvent(new CustomEvent('kmh-image-uploaded',{detail:{url:response.url}}));
          document.querySelector('.kmh-linked-preview')?.removeAttribute('hidden');
-         toast('File uploaded and link inserted into the editor.');
+         toast(`Uploaded via ${response.provider||'selected host'}; link inserted into editor.`);
        });
      }catch(error){if(canReplace)replacePlaceholder(field,token,'');toast('Upload failed: '+error.message);}
    };
@@ -138,7 +157,7 @@
    overlay.className='kmh-upload-drop-overlay';
    overlay.hidden=true;
    overlay.setAttribute('aria-hidden','true');
-   overlay.innerHTML='<div class="kmh-upload-drop-message"><i class="fas fa-cloud-upload-alt" aria-hidden="true"></i><strong>Drop a file to upload</strong><span>Images embed · other supported files become links · s-ul.eu</span></div>';
+   overlay.innerHTML='<div class="kmh-upload-drop-message"><i class="fas fa-cloud-upload-alt" aria-hidden="true"></i><strong>Drop a file to upload</strong><span>GIF, PNG, JPEG, WebP and other supported images embed · your selected host</span></div>';
    document.body.appendChild(overlay);
    return overlay;
  }

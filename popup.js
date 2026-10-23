@@ -39,12 +39,22 @@ document.addEventListener('DOMContentLoaded', () => {
     $('open-discussion-settings').addEventListener('click',()=>open('openPageSettings'));
     $('open-draft-coach')?.addEventListener('click',()=>open('openPageCoach'));
     $('replay-onboarding')?.addEventListener('click',()=>open('openPageTour'));
-    chrome.storage.local.get(['sulApiKey'],record=>{key.value=record.sulApiKey||'';});
+    chrome.storage.local.get(['sulApiKey','catboxUserhash','imgbbApiKey','uploadProvider','uploadLitterboxExpiry'],record=>{
+        key.value=record.sulApiKey||'';
+        $('catbox-key').value=record.catboxUserhash||'';
+        $('imgbb-key').value=record.imgbbApiKey||'';
+        $('upload-provider').value=record.uploadProvider||'smart';
+        $('litterbox-expiry').value=record.uploadLitterboxExpiry||'24h';
+    });
     save.addEventListener('click',()=>{
         save.disabled=true;
-        chrome.storage.local.set({sulApiKey:key.value.trim()},()=>{
+        chrome.storage.local.set({
+            sulApiKey:key.value.trim(),catboxUserhash:$('catbox-key').value.trim(),
+            imgbbApiKey:$('imgbb-key').value.trim(),uploadProvider:$('upload-provider').value,
+            uploadLitterboxExpiry:$('litterbox-expiry').value
+        },()=>{
             save.disabled=false;
-            info(chrome.runtime.lastError?.message||'s-ul.eu key saved locally.');
+            info(chrome.runtime.lastError?.message||'Hosting preferences saved locally.');
         });
     });
     readStatus();

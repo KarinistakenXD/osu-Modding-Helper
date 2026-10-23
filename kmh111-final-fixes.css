@@ -1,6 +1,4 @@
 /* v1.1.1 reviewer fixes: UI matches osu!web without rerender-dependent coloration. */
-.kmh111-inspect-entry { position:static!important; inset:auto!important; display:inline-flex!important; align-items:center!important; justify-content:center!important; vertical-align:middle!important; width:24px!important; height:24px!important; min-width:24px!important; margin:0 0 0 7px!important; padding:0!important; font-size:11px!important; border:0!important; border-radius:50%!important; color:#fff!important; background:hsl(var(--hsl-h2,200,50%,45%))!important; }
-.kmh111-inspect-entry:hover {filter:brightness(1.15)}
 .kmh111-dl-menu.kmh111-floating{width:min(365px,calc(100vw - 20px))!important}
 .kmh-inline-coach.kmh111-floating{width:min(360px,calc(100vw - 20px))!important;max-height:75vh!important}
 .kmh111-floating{overscroll-behavior:contain}

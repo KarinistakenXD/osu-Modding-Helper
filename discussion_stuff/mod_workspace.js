@@ -1,6 +1,6 @@
 (() => {
     const editorSelector = '.beatmap-discussion-new__message-area, .beatmap-discussion-post__message--editor, [data-slate-editor="true"]';
-    let profile = null, panel = null, view = 'mine', discussions = [], cursor = null, allLoaded = false, generation = 0, accountGeneration = 0, context = '';
+    let accountAuthenticated = false, accountProblem = '', profile = null, panel = null, view = 'mine', discussions = [], cursor = null, allLoaded = false, generation = 0, accountGeneration = 0, context = '';
     let checked = {}, seenMaps = {}, currentMap = [], currentMapLoaded = false, trackedMine = [];
     const draftStates = new Set();
     const editorStates = new WeakMap();
@@ -15,8 +15,8 @@
     const categories = new Set(['problem', 'suggestion', 'hype', 'praise', 'mapper_note']);
     let searchQuery = '', sortMode = 'updated', loadTarget = 50, dateFrom = '', dateTo = ''; 
     const discussionRoute = () => /^\/beatmapsets\/\d+\/discussion(?:\/|$)/.test(location.pathname);
-    function closeWorkspace() { if (!overlay || overlay.hidden) return; overlay.hidden = true; document.body.style.overflow = overlay.kmhPreviousOverflow || ''; returnFocus?.focus(); }
-    function openWorkspace(id, opener) { if(['followups','map','favourites'].includes(id))id='mine';ensurePanel(); if (!overlay || !isModHelperFeatureEnabled('modWorkspace')) return; view = id; returnFocus = opener; if (overlay.hidden) overlay.kmhPreviousOverflow = document.body.style.overflow; overlay.hidden = false; document.body.style.overflow = 'hidden'; loadView(false); panel.querySelector('[data-close]').focus(); }
+    function closeWorkspace() { if (!overlay || overlay.hidden) return; overlay.hidden = true; document.body.style.overflow = overlay.kmhPreviousOverflow || ''; returnFocus?.focus(); window.KmhSyncQuickToggles?.(); }
+    function openWorkspace(id, opener) { if(['followups','map','favourites'].includes(id))id='mine';ensurePanel(); if (!overlay || !isModHelperFeatureEnabled('modWorkspace')) return; view = id; returnFocus = opener; if (overlay.hidden) overlay.kmhPreviousOverflow = document.body.style.overflow; overlay.hidden = false; document.body.style.overflow = 'hidden'; loadView(false); panel.querySelector('[data-close]').focus(); window.KmhSyncQuickToggles?.(); }
     const readActions = new Set(['getAuthStatus', 'fetchProfile', 'fetchDiscussions', 'fetchDiscussionPosts', 'fetchFavourites']);
     const request = (message, retried = false) => new Promise((resolve, reject) => {
         try { chrome.runtime.sendMessage(message, response => {
@@ -241,14 +241,14 @@
         const account=panel.querySelector('[data-account]');account.replaceChildren();
         const strip=panel.querySelector('.kmh-account-strip');
         const shell=panel.querySelector('.kmh-profile-shell');
-        strip.classList.toggle('kmh-needs-auth',!profile);
+        strip.classList.toggle('kmh-needs-auth',!accountAuthenticated);
         shell.classList.toggle('kmh-has-profile',!!profile);
         shell.style.removeProperty('--kmh-cover-image');
         const hosts=new Set(['assets.ppy.sh','osu.ppy.sh','a.ppy.sh']);
         if (!profile) {
-            account.append(el('strong','Connect osu! to unlock your modding workspace','kmh-onboarding-title'),
-              el('div','Read your discussions and recent replies. Draft recovery and Ranking Criteria work without signing in.','kmh-onboarding-desc'),
-              el('small','Authentication uses the configured third-party token exchange proxy. Connect only if you trust it.','kmh-onboarding-note'));
+            account.append(el('strong', accountAuthenticated ? 'osu! session connected' : 'Connect osu! to unlock your modding workspace','kmh-onboarding-title'),
+              el('div', accountAuthenticated ? 'Your account is authorized, but profile data could not be loaded.' : 'Read your discussions and recent replies. Draft recovery and Ranking Criteria work without signing in.','kmh-onboarding-desc'),
+              el('small', accountProblem || (accountAuthenticated ? 'Use Refresh to retry the osu! API request.' : 'Authentication uses the configured third-party token exchange proxy. Connect only if you trust it.'),'kmh-onboarding-note'));
         } else {
             const cover=imageUrl(profile.cover?.url||profile.cover?.custom_url||profile.cover_url,hosts);
             if(cover)shell.style.setProperty('--kmh-cover-image',`url(${JSON.stringify(cover)})`);
@@ -256,37 +256,70 @@
             const identity=el('div',null,'kmh-profile-identity');
             if(avatar){const pic=el('img');pic.className='kmh-profile-avatar';pic.src=avatar;pic.alt='';pic.referrerPolicy='no-referrer';identity.append(pic);}
             const stack=el('div',null,'kmh-profile-info');
+            const nameLine=el('div',null,'kmh-profile-name-line');
             const profileLink=el('a',String(profile.username||`User ${profile.id}`),'kmh-profile-name');
             if(Number.isSafeInteger(Number(profile.id))&&Number(profile.id)>0){profileLink.href=`https://osu.ppy.sh/users/${Number(profile.id)}`;profileLink.target='_blank';profileLink.rel='noopener noreferrer';}
-            else{profileLink.removeAttribute('href');}
-            stack.append(profileLink,el('span','osu! connected','kmh-profile-status kmh111-connected'));
+            nameLine.append(profileLink);
+            // Mirror osu!web's native support-level markup, not a fabricated one-heart text badge.
+            if(profile.is_supporter === true){
+                const hearts=Number(profile.support_level);
+                const level=Number.isInteger(hearts)&&hearts>=1 ? Math.min(hearts,3) : 1;
+                const icons=el('div',null,'profile-info__icons profile-info__icons--name-inline kmh-profile-icons');
+                const supporter=el('a',null,'profile-info__icon profile-info__icon--supporter');
+                supporter.href='https://osu.ppy.sh/home/support';
+                supporter.title='osu!supporter';
+                supporter.setAttribute('aria-label',`osu!supporter · ${level} heart${level===1?'':'s'}`);
+                for(let i=0;i<level;i++){const heart=el('span',null,'fas fa-heart');heart.setAttribute('aria-hidden','true');supporter.append(heart);}
+                icons.append(supporter);nameLine.append(icons);
+            }
+            stack.append(nameLine);
+            if(profile.title){const title=el('span',String(profile.title),'kmh-profile-user-title');if(/^#[a-f\d]{6}$/i.test(profile.profile_colour||''))title.style.color=profile.profile_colour;stack.append(title);}
+            stack.append(el('span','osu! account connected','kmh-profile-status kmh111-connected'));
             const badges=el('div',null,'kmh-profile-badges');const groupApi=window.KmhGroupBadges;
-            for(const group of (Array.isArray(profile.groups)?profile.groups:[]).filter(g=>groupApi?.eligible?.(g)).slice(0,6)){
+            for(const group of (Array.isArray(profile.groups)?profile.groups:[]).filter(g=>groupApi?.eligible?.(g))){
                 const badge=groupApi.make(group);if(badge)badges.append(badge);
             }
-            if(profile.is_supporter===true){const supporter=el('span',' osu!supporter','kmh-profile-supporter');supporter.prepend(icon('fas fa-heart'));badges.append(supporter);}
             if(badges.childElementCount)stack.append(badges);
             identity.append(stack);account.append(identity);
         }
         const control=panel.querySelector('[data-connect]');
-        control.classList.toggle('kmh111-connected',!!profile);
-        control.classList.toggle('kmh111-disconnected',!profile);
-        control.textContent=profile?'Disconnect':'Connect osu! account ↗';
-        control.classList.toggle('kmh-primary-button',!profile);
-        control.classList.toggle('kmh-outline-button',!!profile);
+        control.classList.toggle('kmh111-connected',accountAuthenticated);
+        control.classList.toggle('kmh111-disconnected',!accountAuthenticated);
+        control.textContent=accountAuthenticated?'Disconnect':'Connect osu! account ↗';
+        control.classList.toggle('kmh-primary-button',!accountAuthenticated);
+        control.classList.toggle('kmh-outline-button',accountAuthenticated);
     }
     async function connect() {
         const control = panel.querySelector('[data-connect]'); control.disabled = true;
-        try { await request({ action: profile ? 'disconnectAuth' : 'startAuthFlow' }); window.dispatchEvent(new CustomEvent('mod-helper-osu-auth-changed')); }
+        try { await request({ action: accountAuthenticated ? 'disconnectAuth' : 'startAuthFlow' }); window.dispatchEvent(new CustomEvent('mod-helper-osu-auth-changed')); }
         catch (error) { panel.querySelector('[data-results]').textContent = error.message; }
         finally { control.disabled = false; }
     }
     async function refreshAccount() {
-        const turn = ++accountGeneration; await flushDrafts();
-        try { const status = await request({ action: 'getAuthStatus' }); const nextProfile = status?.connected ? await request({ action: 'fetchProfile' }) : null; if (turn !== accountGeneration) return; profile = nextProfile;
-            const state = (await chrome.storage.local.get([stateKey()]))[stateKey()] || {}; checked = state.checked || {}; seenMaps = state.seenMaps || {};
-        } catch (error) { if (turn !== accountGeneration) return; profile = null; checked = {}; seenMaps = {}; panel.querySelector('[data-results]').textContent = `Account unavailable: ${error.message}`; }
-        accountUI(); trackedMine = []; currentMap = []; currentMapLoaded = false; resetDraftContexts(); window.dispatchEvent(new Event('kmh-review-state-ready')); await loadView(false);
+        const turn = ++accountGeneration;
+        await flushDrafts();
+        try {
+            const status=await request({action:'getAuthStatus'});
+            if(turn!==accountGeneration)return;
+            accountAuthenticated=!!status?.connected;
+            accountProblem='';
+            if(accountAuthenticated){
+                try { profile=await request({action:'fetchProfile'}); if(!profile?.id) throw new Error('Empty profile response'); }
+                catch(error){ profile=null; accountProblem=`Profile unavailable: ${error.message}`; }
+            } else profile=null;
+            if(turn!==accountGeneration)return;
+            const state=(await chrome.storage.local.get([stateKey()]))[stateKey()]||{};
+            if(turn!==accountGeneration)return;
+            checked=state.checked||{};seenMaps=state.seenMaps||{};
+        } catch (error) {
+            if(turn!==accountGeneration)return;
+            // Communication failure is not a confirmed logout.
+            accountProblem=`Connection check unavailable: ${error.message}`;
+        }
+        if(turn!==accountGeneration)return;
+        accountUI(); trackedMine=[]; currentMap=[]; currentMapLoaded=false; resetDraftContexts();
+        window.dispatchEvent(new Event('kmh-review-state-ready'));
+        await loadView(false);
     }
     const shortMessage = discussion => String(messageOf(discussion))
         .replace(/!\[[^\]]*\]\([^)]*\)/g, '[image]')
@@ -426,7 +459,7 @@
         panel.querySelector('[data-categories]').hidden=view!=='mine';
         panel.querySelector('.kmh-review-checkpoint').hidden=true;
         if(view==='drafts') {cursor=null;allLoaded=true;discussions=[];panel.querySelector('[data-coverage]').textContent='';panel.querySelector('[data-counts]').replaceChildren();renderDrafts();return;}
-        if(!profile) {discussions=[];cursor=null;panel.querySelector('[data-coverage]').textContent='';panel.querySelector('[data-counts]').replaceChildren();results.replaceChildren();const empty=el('div',null,'kmh-empty-state kmh-auth-empty');empty.append(el('i',null,'fas fa-lock'),el('strong','Connect your osu! account'),el('p','Authorize osu! to load your personal discussions and history. Local drafts and Ranking Criteria work without signing in.'));results.append(empty);return;}
+        if(!profile) {discussions=[];cursor=null;panel.querySelector('[data-coverage]').textContent='';panel.querySelector('[data-counts]').replaceChildren();results.replaceChildren();const empty=el('div',null,'kmh-empty-state kmh-auth-empty');empty.append(el('i',null,accountAuthenticated?'fas fa-exclamation-circle':'fas fa-lock'),el('strong',accountAuthenticated?'Unable to load profile':'Connect your osu! account'),el('p',accountAuthenticated?(accountProblem||'Your session is connected. Try Refresh to fetch your profile again.'):'Authorize osu! to load your personal discussions and history. Local drafts and Ranking Criteria work without signing in.'));results.append(empty);return;}
         if(view==='favourites') {
             results.textContent='Loading favourites…';
             try {const response=await request({action:'fetchFavourites',page:1});if(turn!==generation)return;const sets=Array.isArray(response)?response:response?.beatmapsets||[];results.replaceChildren();panel.querySelector('[data-counts]').replaceChildren();if(!sets.length)results.append(el('p','No favourites returned.'));sets.forEach(set=>{const row=el('article',null,'kmh-mod-row kmh-favourite-row');const a=el('a',`${set.artist||''} — ${set.title||'Untitled mapset'}`,'kmh-favourite-link');a.href=`https://osu.ppy.sh/beatmapsets/${set.id}/discussion`;a.target='_blank';a.rel='noopener noreferrer';row.append(a,el('small','Open discussion page ↗'));results.append(row);});panel.querySelector('[data-coverage]').textContent='Favourites · first page';}catch(error){if(turn===generation)results.textContent=`Could not load favourites: ${error.message}`;}return;
@@ -664,6 +697,7 @@
     });
     window.KmhWorkspace = { scan, parseTimestamp, matchRelated, flushDrafts, loadView, open:openWorkspace, close:closeWorkspace, checkActivity };
     window.addEventListener('mod-helper-osu-auth-changed', () => { if (panel) refreshAccount(); });
+    chrome.storage?.onChanged?.addListener?.((changes,area)=>{if(area==='local'&&changes.osuAuthToken&&panel)refreshAccount();});
     window.addEventListener('mod-helper-settings-changed', scan);
     document.addEventListener('visibilitychange', () => { if (document.hidden) flushDrafts(); });
     window.addEventListener('pagehide', flushDrafts);

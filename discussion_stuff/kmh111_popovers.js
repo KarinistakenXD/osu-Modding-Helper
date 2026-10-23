@@ -35,12 +35,19 @@
   close();panel.hidden=false;panel.classList.add('kmh111-floating');document.body.append(panel);
   anchor.setAttribute('aria-expanded','true');
   const s={anchor,panel,onClose:opts.onClose};
-  s.pointer=(ev)=>{if(panel.contains(ev.target)||anchor.contains(ev.target)||opts.stayOpen)return;close();};
-  s.key=(ev)=>{if(ev.key==='Escape'){close();anchor.focus?.();}};
+  s.pointer=(ev)=>{if(panel.contains(ev.target)||s.anchor.contains(ev.target)||opts.stayOpen)return;close();};
+  s.key=(ev)=>{if(ev.key==='Escape'){const previous=s.anchor;close();previous.focus?.();}};
   s.scroll=(ev)=>{if(panel.contains(ev.target))return;if(opts.stayOpen){s.resize();return;}close();};
-  s.resize=()=>place(anchor,panel,opts.preferred||'side');
+  s.resize=()=>place(s.anchor,panel,opts.preferred||'side');
   current=s;document.addEventListener('pointerdown',s.pointer,true);document.addEventListener('keydown',s.key,true);document.addEventListener('scroll',s.scroll,true);window.addEventListener('resize',s.resize);
-  place(anchor,panel,opts.preferred||'side');return true;
+  s.resize();return true;
  }
- window.Kmh111Popover={show,close,isOpen:el=>current?.panel===el,reposition:()=>current&&place(current.anchor,current.panel,'side')};
+ function reanchor(panel,anchor){
+   if(current?.panel!==panel||!anchor?.isConnected)return false;
+   if(current.anchor===anchor)return true;
+   current.anchor?.setAttribute('aria-expanded','false');
+   current.anchor=anchor;anchor.setAttribute('aria-expanded','true');
+   current.resize();return true;
+ }
+ window.Kmh111Popover={show,close,reanchor,isOpen:el=>current?.panel===el,reposition:()=>current?.resize()};
 })();

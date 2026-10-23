@@ -14,39 +14,40 @@
   const foot=$('footer','kmh111-inspector-actions');const copy=$('button',null,'Copy everything'),json=$('button',null,'Download JSON');[copy,json].forEach(x=>x.type='button');copy.onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(m,null,2));copy.textContent='Copied!';}catch{copy.textContent='Clipboard unavailable';}};json.onclick=()=>window.Kmh111Download?.exportMetadata?.(set,'json');foot.append(copy,json);modal.append(foot);shade.append(modal);document.body.append(shade);
   const dismiss=()=>{document.removeEventListener('keydown',key);shade.remove();};const key=e=>{if(e.key==='Escape')dismiss();};shade.addEventListener('click',e=>{if(e.target===shade)dismiss();});close.onclick=dismiss;document.addEventListener('keydown',key);close.focus();
  }
- function sourceRow(){
-   const container=document.querySelector('.beatmapset-info__box, .beatmapset-info__scrollable, .beatmapset-info');
-   if(!container) return null;
-   const rows=[...container.querySelectorAll('.beatmapset-info__row')];
-   // Source is a semantic header; never select Description or a matching tag.
-   let row=rows.find(r=>[...r.querySelectorAll('h3, h4, dt')]
-     .some(h=>/^source$/i.test(h.textContent.trim())));
-   if(row)return row;
-   // Missing Source does not mean the inspector should disappear.
-   row=container.querySelector('.kmh111-source-fallback');
-   if(!row){
-     row=$('div','beatmapset-info__row kmh111-source-fallback');
-     row.append($('h3','beatmapset-info__header','Source'),$('span','kmh111-empty-source','Not specified'));
-     const first=rows[0];if(first)first.insertAdjacentElement('beforebegin',row);
-     else (container.querySelector('.beatmapset-info__scrollable')||container).prepend(row);
-   }
-   return row;
+ // The metadata column is osu!web's second beatmapset-info box. Its native
+ // pencil lives in a separate, absolutely-positioned edit-button action. Keep
+ // the inspector in its own sibling root, never inside React-controlled rows.
+ function metadataInspectorMount(){
+   const halfRow=document.querySelector('.beatmapset-info .beatmapset-info__row--half');
+   return halfRow?.closest('.beatmapset-info__box')||null;
  }
  function inspectorButton(){
-  if(!mapPage()||discussion())return;
-  const set=getData();if(!set?.id)return;
-  const row=sourceRow();if(!row)return;
-  // Remove stale legacy instances including ones stranded at Description.
-  document.querySelectorAll('.kmh111-inspect-entry').forEach(button=>{if(button.parentElement!==row)button.remove();});
-  let button=row.querySelector(':scope > .kmh111-inspect-entry');
-  if(!button){
-    button=$('button','kmh111-inspect-entry btn-circle');button.type='button';
-    button.setAttribute('aria-label','Inspect and copy beatmap metadata');
-    button.title='Inspect metadata';
-    button.innerHTML='<span class="btn-circle__content"><span class="fas fa-search" aria-hidden="true"></span></span>';
-    row.append(button);
-  }
-  button.onclick=()=>openInspector(set);
+   // Earlier preview builds injected a Source placeholder and an inline
+   // magnifying-glass control. Both must disappear without altering real data.
+   document.querySelectorAll('.kmh111-source-fallback').forEach(row=>row.remove());
+   document.querySelectorAll('.kmh111-inspect-entry--inline').forEach(button=>button.remove());
+   const mount=mapPage()&&!discussion()?metadataInspectorMount():null;
+   document.querySelectorAll('.kmh111-inspect-action').forEach(action=>{
+     if(action.parentElement!==mount)action.remove();
+   });
+   const set=getData();
+   if(!mount||!set?.id)return;
+   // osu!web renders its edit button only for editors. The inspector is still
+   // available on other beatmapsets and occupies the native action position.
+   const hasEdit=!!mount.querySelector(':scope > .beatmapset-info__edit-button');
+   let action=mount.querySelector(':scope > .kmh111-inspect-action');
+   if(!action){
+     action=$('div','kmh111-inspect-action');
+     const button=$('button','kmh111-inspect-entry btn-circle');
+     button.type='button';
+     button.setAttribute('aria-label','Inspect and copy beatmap metadata');
+     button.title='Inspect metadata';
+     button.innerHTML='<span class="btn-circle__content"><span class="fas fa-search" aria-hidden="true"></span></span>';
+     action.append(button);
+     mount.append(action);
+   }
+   action.classList.toggle('kmh111-inspect-action--with-edit',hasEdit);
+   action.querySelector('button').onclick=()=>openInspector(getData()||set);
  }
  function stylePostTypes(){document.querySelectorAll('.beatmap-discussion-new__footer button').forEach(button=>{const value=String(button.textContent||button.title||'').toLowerCase();const type=['praise','suggestion','problem','note'].find(x=>value.includes(x));if(type)button.dataset.kmh111Type=type;});}
  const peekCache=new Map(),lookupBudget={count:0};
@@ -107,11 +108,12 @@
   });
  }
  // Public usergroup badges: only official API-reported groups, never inferred from avatars or names.
- const groupCache=new Map();const groupInflight=new Set();let outstanding=0;
+ const groupCache=new Map(),groupFailures=new Map();const groupInflight=new Set();let outstanding=0;
+ let groupAuth='unknown',groupAuthPending=false,groupAuthCheckedAt=0;
  function publicGroupData(groups){
    // The API returns memberships, playmodes, short_name and is_probationary.
    // Never infer a role from a username, comment, staff-UI mock, or avatar.
-   return (Array.isArray(groups)?groups:[]).filter(g=>window.KmhGroupBadges?.eligible?.(g)).slice(0,6);
+   return (Array.isArray(groups)?groups:[]).filter(g=>window.KmhGroupBadges?.eligible?.(g));
  }
  function findCommentAuthor(card){
    const header=card.querySelector('.comment__row--header,.beatmap-discussion-post__header,.user-card');
@@ -128,25 +130,45 @@
    const candidates=new Map();
    for(const card of cards){const info=findCommentAuthor(card);if(!info)continue;
      if(groupCache.has(info.id))attachOfficialRole(info.a,groupCache.get(info.id));
-     else if(!groupInflight.has(info.id))candidates.set(info.id,info.a);
+     else if(!groupInflight.has(info.id) && (groupFailures.get(info.id)||0)<Date.now())candidates.set(info.id,info.a);
    }
    if(!chrome?.runtime?.sendMessage)return;
+   // Public user endpoints still require the extension's own OAuth token.
+   // Native osu!web login cookies alone do not authorize these requests.
+   if(groupAuth!=='connected'){
+     if(!groupAuthPending && (groupAuth==='unknown' || Date.now()-groupAuthCheckedAt>120000)){
+       groupAuthPending=true;
+       try{chrome.runtime.sendMessage({action:'getAuthStatus'},response=>{
+         groupAuthPending=false;groupAuthCheckedAt=Date.now();
+         groupAuth=chrome.runtime.lastError||response?.error?'unavailable':response?.data?.connected?'connected':'disconnected';
+         if(groupAuth==='connected')setTimeout(publicGroups,30);
+       });}catch{groupAuthPending=false;groupAuth='unavailable';groupAuthCheckedAt=Date.now();}
+     }
+     return;
+   }
    for(const [id] of candidates){
-     if(outstanding>=3||groupCache.size>=100)break;
+     if(outstanding>=3)break;
      groupInflight.add(id);outstanding++;
      try{chrome.runtime.sendMessage({action:'fetchPublicUser',userId:id},response=>{
        outstanding--;groupInflight.delete(id);
-       if(chrome.runtime.lastError||!response?.data)return;
-       const roles=publicGroupData(response.data.groups);groupCache.set(id,roles);
+       if(chrome.runtime.lastError||response?.error||!response?.data){
+         // OAuth/API failures do not prove that a commenter has no roles.
+         groupFailures.set(id,Date.now()+30000);
+         if(candidates.size>3)setTimeout(publicGroups,800);return;
+       }
+       const roles=publicGroupData(response.data.groups);groupFailures.delete(id);
+       if(groupCache.size>=100)groupCache.delete(groupCache.keys().next().value);groupCache.set(id,roles);
        cards.forEach(card=>{const info=findCommentAuthor(card);if(info?.id===id)attachOfficialRole(info.a,roles);});
        if(candidates.size>3)setTimeout(publicGroups,350);
      });}catch{outstanding--;groupInflight.delete(id);}
    }
  }
- window.addEventListener('mod-helper-osu-auth-changed',()=>{groupInflight.clear();setTimeout(publicGroups,250);});
+ function invalidateGroups(){groupCache.clear();groupFailures.clear();groupAuth='unknown';groupAuthCheckedAt=0;setTimeout(publicGroups,250);}
+ window.addEventListener('mod-helper-osu-auth-changed',invalidateGroups);
+ chrome.storage?.onChanged?.addListener?.((changes,area)=>{if(area==='local'&&changes.osuAuthToken)invalidateGroups();});
  // Shared toolbar and modal controls are mounted outside the react-owned original editor controls.
  function workspaceStyling(){document.querySelectorAll('.kmh-mod-workspace [data-connect]').forEach(btn=>{btn.classList.add('kmh111-account-control');});}
- function cleanupIfChanged(){if(!mapPage()){document.getElementById('kmh111-inspector')?.remove();window.Kmh111Popover?.close?.();document.querySelectorAll('.kmh111-dl-mount,.kmh111-dl-menu,.kmh111-dl-toggle').forEach(x=>x.remove());}}
+ function cleanupIfChanged(){if(!mapPage()){document.getElementById('kmh111-inspector')?.remove();window.Kmh111Popover?.close?.();document.querySelectorAll('.kmh111-dl-mount,.kmh111-dl-menu,.kmh111-dl-toggle,.kmh111-inspect-action,.kmh111-inspect-entry,.kmh111-source-fallback').forEach(x=>x.remove());}}
  function reconcile(){cleanupIfChanged();if(!mapPage())return;window.Kmh111Download?.reconcile?.();inspectorButton();signalNearby();publicGroups();workspaceStyling();}
  let scheduled=0;function queue(){if(scheduled)return;scheduled=setTimeout(()=>{scheduled=0;reconcile();},180);}
  new MutationObserver(records=>{if(records.some(r=>!r.target.closest?.('.kmh111-dl-mount,.kmh111-inspector,.kmh111-modal-backdrop,.kmh111-timestamp-peek,.kmh111-role')))queue();}).observe(document.documentElement,{childList:true,subtree:true});

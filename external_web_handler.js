@@ -5,7 +5,7 @@
 // background event page, where importScripts() is not available.
 if (typeof importScripts === 'function') {
     try {
-        importScripts('osu_auth_manager.js', 'osu_api_client.js');
+        importScripts('osu_auth_manager.js', 'osu_api_client.js', 'upload_limits.js', 'upload_providers.js');
     } catch (e) {
         console.error('Modding Helper: Failed to import background scripts', e);
     }
@@ -73,44 +73,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 async function handleImageUpload(request, sendResponse) {
     try {
-        const storageData = await chrome.storage.local.get(['sulApiKey']);
-        const apiKey = storageData.sulApiKey;
-
-        if (!apiKey || apiKey.trim() === '') {
-            throw new Error("missing_api_key");
-        }
-
-        const response = await fetch(request.imageData);
-        const blob = await response.blob();
-
-        const uploadUrl = new URL('https://s-ul.eu/api/v1/upload');
-        uploadUrl.searchParams.set('wizard', 'true');
-        uploadUrl.searchParams.set('key', apiKey.trim());
-
-        const formData = new FormData();
-        formData.append('file', blob, request.fileName || 'image.png');
-
-        const uploadRes = await fetch(uploadUrl.toString(), {
-            method: 'POST',
-            body: formData,
-            credentials: 'omit'
-        });
-
-        if (!uploadRes.ok) {
-            const errorBody = await uploadRes.text().catch(() => '');
-            const detail = errorBody ? `: ${errorBody.slice(0, 200)}` : '';
-            throw new Error(`Upload failed with status ${uploadRes.status}${detail}`);
-        }
-
-        const json = await uploadRes.json();
-        
-        if (json && json.url) {
-            sendResponse({ url: json.url });
-        } else {
-            throw new Error("Invalid response from s-ul");
-        }
-    } catch (error) {
-        console.error("Modding Helper File Upload Error:", error);
-        sendResponse({ error: error.message });
+        const result=await self.KmhUploadProviders.upload(request);
+        sendResponse(result);
+    } catch(error) {
+        console.warn('Modding Helper: image/file hosting failed:', error.message);
+        sendResponse({ error:error.message, code:error.code||null });
     }
 }

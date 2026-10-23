@@ -2,6 +2,7 @@
 (function(){
  'use strict';
  const scheduleTimers = new WeakMap();
+ const livePanels = new Set();
  const $=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text!=null)el.textContent=text;return el;};
  const message=box=>box?.querySelector('.beatmap-discussion-new__message');
  function websiteCategory(box){
@@ -16,7 +17,7 @@
  const draft=box=>{const field=getField(box);return field?(field.value??field.innerText??''):'';};
  function findEditor(){return [...document.querySelectorAll('.beatmap-discussion-new')].find(b=>b.getClientRects().length>0)||document.querySelector('.beatmap-discussion-new');}
  function panelFor(box){return box?._kmh111CoachPanel?.isConnected ? box._kmh111CoachPanel : null;}
- function updateActive(box,shown){const toggle=box?.querySelector('.kmh-editor-actions [data-kmh-open-coach]');if(toggle){toggle.setAttribute('aria-expanded',String(shown));toggle.classList.toggle('is-active',shown);}}
+ function updateActive(box,shown){const toggle=box?.querySelector('.kmh-editor-actions [data-kmh-open-coach]');if(toggle){toggle.setAttribute('aria-expanded',String(shown));toggle.setAttribute('aria-pressed',String(shown));toggle.classList.toggle('is-active',shown);}}
  function render(box){
    const panel=panelFor(box);if(!panel||panel.hidden)return;
    panel.dataset.kmhHasDraft=String(!!draft(box).trim());
@@ -40,9 +41,57 @@
    panel.querySelector('.kmh-coach-copy-preview').value='';
    panel.querySelector('.kmh-coach-copy-clean').hidden=true;
  }
+ function queueReview(box,panel){
+   if(panel.hidden)return;
+   panel.querySelector('.kmh-coach-stale').hidden=false;
+   clearTimeout(scheduleTimers.get(panel));
+   const timer=setTimeout(()=>{if(panel.isConnected&&!panel.hidden&&box.isConnected)render(box);},900);
+   scheduleTimers.set(panel,timer);
+ }
+ function bindField(box,panel){
+   const field=getField(box);
+   if(panel._kmhBoundField===field)return;
+   panel._kmhFieldListeners?.abort();
+   clearTimeout(scheduleTimers.get(panel));
+   panel._kmhBoundField=field;
+   panel._kmhFieldListeners=new AbortController();
+   if(field){
+     let composing=false;
+     const opts={signal:panel._kmhFieldListeners.signal};
+     field.addEventListener('compositionstart',()=>{composing=true;},opts);
+     field.addEventListener('compositionend',()=>{composing=false;queueReview(box,panel);},opts);
+     field.addEventListener('input',()=>{if(!composing)queueReview(box,panel);},opts);
+   }
+   if(!panel.hidden)render(box);
+ }
+ function cleanupStale(){
+   for(const panel of livePanels){
+     const box=panel._kmhOwner;
+     if(panel.isConnected&&box.isConnected)continue;
+     clearTimeout(scheduleTimers.get(panel));
+     panel._kmhFieldListeners?.abort();
+     panel._kmhOwnerListeners?.abort();
+     if(window.Kmh111Popover?.isOpen?.(panel))window.Kmh111Popover.close();
+     panel.remove();
+     if(box._kmh111CoachPanel===panel)delete box._kmh111CoachPanel;
+     livePanels.delete(panel);
+   }
+ }
+ function disposeAll(){
+   for(const panel of [...livePanels]){
+     const box=panel._kmhOwner;
+     clearTimeout(scheduleTimers.get(panel));
+     panel._kmhFieldListeners?.abort();panel._kmhOwnerListeners?.abort();
+     if(window.Kmh111Popover?.isOpen?.(panel))window.Kmh111Popover.close();
+     panel.remove();
+     if(box?._kmh111CoachPanel===panel)delete box._kmh111CoachPanel;
+     livePanels.delete(panel);
+   }
+ }
  function ensure(box){
+   cleanupStale();
    const host=message(box);if(!host)return null;
-   let panel=panelFor(box);if(panel)return panel;
+   let panel=panelFor(box);if(panel){bindField(box,panel);return panel;}
    panel=$('section','kmh-inline-coach');panel.hidden=true;
    panel.setAttribute('aria-label','Draft Coach local review');
    panel.innerHTML=`<header class="kmh-coach-inline-head"><div><strong><i class="fas fa-clipboard-check" aria-hidden="true"></i> Draft Coach</strong><span>Live while open · local only · Karin-’s Road to BN</span></div><button class="kmh-coach-close" type="button" aria-label="Close Draft Coach" title="Collapse Coach">×</button></header>
@@ -51,7 +100,7 @@
      <div class="kmh-coach-inline-foot"><span>Based on Karin-’s Road to BN (personal teaching edition). Not official RC or gameplay validation.</span><button class="kmh-coach-clean" type="button" hidden>Preview Markdown cleanup</button></div>
      <details class="kmh-coach-guide"><summary>About the Road to BN method</summary><p>Where → Why → How. Compare similar phrases, explain musical or physical impact, and consider alternative repairs. A polished post does not prove a strong diagnosis.</p></details>
      <textarea class="kmh-coach-copy-preview" aria-label="Converted Markdown preview (not the original draft)" readonly hidden></textarea><button type="button" class="kmh-coach-copy-clean" hidden>Copy converted preview</button>`;
-   document.body.append(panel);box._kmh111CoachPanel=panel;
+   document.body.append(panel);box._kmh111CoachPanel=panel;panel._kmhOwner=box;livePanels.add(panel);
    panel.querySelector('.kmh-coach-close').addEventListener('click',()=>close(box));
 
    panel.querySelector('.kmh-coach-clean').addEventListener('click',()=>{
@@ -63,15 +112,12 @@
       try{await navigator.clipboard.writeText(value);panel.querySelector('.kmh-coach-copy-clean').textContent='Copied ✓';}
       catch{panel.querySelector('.kmh-coach-copy-preview').focus();panel.querySelector('.kmh-coach-copy-preview').select();}
    });
-   function queueReview(){if(panel.hidden)return;panel.querySelector('.kmh-coach-stale').hidden=false;clearTimeout(scheduleTimers.get(panel));const timer=setTimeout(()=>{if(panel.isConnected&&!panel.hidden)render(box);},900);scheduleTimers.set(panel,timer);}
-   const field=getField(box);let composing=false;
-   field?.addEventListener('compositionstart',()=>{composing=true;});
-   field?.addEventListener('compositionend',()=>{composing=false;queueReview();});
-   field?.addEventListener('input',()=>{if(!composing)queueReview();});
-   box.addEventListener('click',ev=>{const button=ev.target.closest?.('button');if(!button)return;const label=String(button.textContent||'').trim();if(/^(?:Post|Praise|Suggestion|Problem|Note|Respond|Reply)/i.test(label))setTimeout(()=>{if(panel.isConnected&&!panel.hidden&&!draft(box).trim())render(box);},1100);});
+   panel._kmhOwnerListeners=new AbortController();
+   box.addEventListener('click',ev=>{const button=ev.target.closest?.('button');if(!button)return;const label=String(button.textContent||'').trim();if(/^(?:Post|Praise|Suggestion|Problem|Note|Respond|Reply)/i.test(label))setTimeout(()=>{if(panel.isConnected&&!panel.hidden&&box.isConnected&&!draft(box).trim())render(box);},1100);},{signal:panel._kmhOwnerListeners.signal});
+   bindField(box,panel);
    return panel;
  }
- function close(box){const target=box||findEditor();const panel=panelFor(target);if(panel){clearTimeout(scheduleTimers.get(panel));window.Kmh111Popover?.close?.();panel.hidden=true;updateActive(target,false);}}
+ function close(box){const target=box||findEditor();const panel=panelFor(target);if(panel){clearTimeout(scheduleTimers.get(panel));if(window.Kmh111Popover?.isOpen?.(panel))window.Kmh111Popover.close();panel.hidden=true;updateActive(target,false);}}
  function open(opener){
    const box=opener?.closest?.('.beatmap-discussion-new')||findEditor();
    if(!box)return false;
@@ -83,6 +129,6 @@
    // Keep original caret/selection in the native editor instead of stealing focus.
    return true;
  }
- function reconcile(box){const panel=panelFor(box);if(panel&&!panel.hidden&&!box.isConnected){panel.remove();} else if(panel&&!panel.hidden)updateActive(box,true);}
- window.KmhDraftCoach={open,close,reconcile,analyze:(txt,opts)=>window.KmhCoachCore.analyze(txt,opts)};
+ function reconcile(box){cleanupStale();const panel=panelFor(box);if(panel){bindField(box,panel);if(!panel.hidden)updateActive(box,true);}}
+ window.KmhDraftCoach={open,close,reconcile,cleanupStale,disposeAll,analyze:(txt,opts)=>window.KmhCoachCore.analyze(txt,opts)};
 })();

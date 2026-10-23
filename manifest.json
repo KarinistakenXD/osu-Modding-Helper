@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Karin's osu! Modding Helper",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtA6TD364nKPEonrHRZ3onkfLWj+P9QhaxkzNrTTprvpLSr2S0x/l5bK+0yfq8zzGW+WEfnwuYyBB2doSEZepPzol4/2y4uHPgPzKqyO2//2ddUifaA7FLaKPFCDg8NHiQLris/VGf1csYfwzqLmcYKn6r9WTkmFBSINEV7xtZPhoi8/9qpTBMPIYQdRMzqZyJPB/VOPtfg1F1NvTmkAgGEKGCWC0WR2+jBkkFaq1zSyrsYexxuzWrStjzZKjQvtmux1u/fn7/jnkVzQ7LqrWFGkwcMfj+R1uwCUGA9KDBtrJkT7oUtE0h6IRHQkcPLR9E/ENbn0B3IV3jsUtT7JEoQIDAQAB",
   "action": {
     "default_popup": "popup.html",
@@ -14,7 +14,7 @@
       "128": "icons/icon-128.png"
     }
   },
-  "description": "osu! Modding Helper: editor tools, discussion triage, metadata inspector and optional asset downloads.",
+  "description": "osu! Modding Helper: discussion tools, multi-host attachments, metadata inspection, and local draft coaching.",
   "permissions": [
     "storage",
     "identity",
@@ -23,13 +23,18 @@
   "host_permissions": [
     "*://osu.ppy.sh/*",
     "*://s-ul.eu/*",
-    "https://osu-proxy.ameliar-online.workers.dev/*"
+    "https://osu-proxy.ameliar-online.workers.dev/*",
+    "https://catbox.moe/*",
+    "https://litterbox.catbox.moe/*",
+    "https://api.imgbb.com/*"
   ],
   "background": {
     "service_worker": "external_web_handler.js",
     "scripts": [
       "osu_auth_manager.js",
       "osu_api_client.js",
+      "upload_limits.js",
+      "upload_providers.js",
       "external_web_handler.js"
     ]
   },
@@ -57,7 +62,8 @@
         "kmh111-r4-polish.css",
         "kmh111-review5.css",
         "kmh111-r6-fixes.css",
-        "kmh111-r7-account.css"
+        "kmh111-r7-account.css",
+        "kmh-v112.css"
       ],
       "js": [
         "discussion_stuff/kmh111_popovers.js",
@@ -69,6 +75,7 @@
         "discussion_stuff/markdown_overlay.js",
         "discussion_stuff/link_preview.js",
         "discussion_stuff/toolbar_injector.js",
+        "upload_limits.js",
         "discussion_stuff/image_uploader.js",
         "discussion_stuff/toggled_RC_book.js",
         "discussion_stuff/kmh_group_badges.js",

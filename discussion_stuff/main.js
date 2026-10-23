@@ -9,6 +9,9 @@ function runInjections() {
     const discussion = /^\/beatmapsets\/\d+\/discussion(?:\/|$)/.test(location.pathname);
     if (!discussion) {
         window.KmhTour?.stop?.(false);
+        // Body-mounted popovers must not survive leaving the discussion view.
+        window.KmhLinkPreview?.disposeAll?.();
+        window.KmhDraftCoach?.disposeAll?.();
         ensureHelperEntry();
         window.KmhWorkspace?.scan(); 
         if (!kmhOutsideDiscussion) window.KmhWorkspace?.flushDrafts();
@@ -37,7 +40,8 @@ function runInjections() {
         ensureHelperEntry();
         if (isModHelperFeatureEnabled('rcBook')) toggled_RC_book();
         else { document.querySelectorAll('.rc-lens-btn').forEach(node => node.remove()); document.getElementById('custom-rc-panel')?.remove(); }
-         window.KmhWorkspace?.scan(); 
+         window.KmhWorkspace?.scan();
+         window.KmhSyncQuickToggles?.();
     } catch (error) { console.error('Modding Helper:', error); }
 }
 function scheduleInjections() {

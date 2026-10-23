@@ -1,14 +1,26 @@
-> **v1.1.1 local preview.** Nothing from this candidate has been committed or released on GitHub. Test on your own browser before approving a publish.
+> **v1.1.2 local preview (four-fix update):** Preserves the existing Smart, s-ul.eu, Catbox, ImgBB and Litterbox upload providers. Fixes link-preview cleanup/rebinding, Draft Coach typing after React textarea replacement, extensionless clipboard images, and expired refreshable OAuth session labels. See [V1.1.2_FOUR_FIXES.md](V1.1.2_FOUR_FIXES.md), [V1.1.2_HOSTING_PLAN.md](V1.1.2_HOSTING_PLAN.md), and [V1.1.2_VALIDATION.md](V1.1.2_VALIDATION.md). Not published on GitHub.
+
+> The previously published repository remains unchanged; this ZIP is a local test build. Keep only one Modding Helper extension enabled while testing.
 
 # Karin's osu! Modding Helper
 
 A browser extension for **osu! beatmap discussions** that helps mappers and modders write clearer feedback, revisit existing discussions, follow replies, and check the Ranking Criteria without replacing osu!web's own editor.
 
-**Local testing candidate:** v1.1.1 (not published; v1.1.0 remains the latest public GitHub release)  
+**Local testing candidate:** v1.1.2 (the GitHub `main` branch was v1.1.1 at the time of this local review; nothing here was committed)  
 **Platform:** Chromium (Chrome / Edge / Opera / Brave / Vivaldi) and Firefox / Zen (Gecko) · Manifest V3  
-**Status:** v1.1.1 revised LOCAL PREVIEW (not published); Review-page Markdown highlighting stays disabled. Live osu!web compatibility and OAuth remain unverified.
+**Status:** v1.1.2 revised LOCAL PREVIEW (not published); Review-page Markdown highlighting stays disabled. Live osu!web compatibility, external provider uploads, and OAuth remain unverified.
 
 > This is a community extension, not an official osu! / BN / NAT tool. It does not provide staff privileges, certify rankability, or submit and resolve discussions automatically.
+
+
+### v1.1.2 connection-layout preview
+
+Metadata now shows a padded, separate Connect/Retry notice only when genre/language API data is unavailable. The Integrations account card provides more vertical padding, places its compact connection status above the Connect/Disconnect button, and shows ordinary disconnected state without an error-red treatment. The OAuth proxy disclosure and authentication flow have not changed. See [`V1.1.2_CONNECTION_LAYOUT_LOG.md`](V1.1.2_CONNECTION_LAYOUT_LOG.md).
+
+### v1.1.2 final UI preview
+
+The New Discussion toolbar has an icon-only Draft Coach button and active-state highlighting for the tools that open panels. Linked previews only show a clickable **N links** chip when the draft actually contains a supported URL. The metadata **Connect osu!** button opens the Integrations section, where the proxy disclosure and real OAuth action remain visible. Progress is shown while the OAuth action is pending. Details are in [`V1.1.2_FINAL_UI_LOG.md`](V1.1.2_FINAL_UI_LOG.md).
+
 
 ## Installation
 
@@ -30,7 +42,7 @@ The extension uses compact helper controls near the native Markdown toolbar. osu
 
 - **Draft Coach** checks the text you are already writing. While Coach is open, analysis updates about **900 ms after typing stops**, including when IME input finishes.
 - **Linked attachments** detect direct image links, osu! screenshot URLs, s-ul.eu links, ordinary websites, and common file URLs. Images can display previews; other links receive clickable cards. A separate, non-interactive highlighting layer colours Markdown in the native discussion/reply textarea without moving the textarea or changing the submitted text. It is **enabled by default on normal discussions and replies** and can be turned off with the highlighter icon. Highlighting is **disabled entirely on New Review pages** to avoid interfering with osu!'s Slate editor. It covers bold/italic, links and image syntax, inline/fenced code, headings, quotes, strikethrough, and osu! timestamps. For very long drafts (more than 20,000 characters), it temporarily falls back to the unmodified native text display.
-- **Paste/drop image upload** supports user-initiated clipboard or dropped images through an optional **s-ul.eu** API key. Uploaded images are inserted as Markdown. Pasting a standalone screenshot URL can also insert an image link automatically.
+- **Paste/drop image upload** supports user-initiated clipboard or dropped images and approved files through Smart host selection or a chosen provider (**s-ul.eu**, **Catbox**, **ImgBB** or **Litterbox**). Supported image MIME types allow extensionless clipboard files (e.g. `image` with `image/png`) and add the matching filename extension for provider uploads; named files with unsafe extensions remain blocked. Inline image embeds over 4,000,000 bytes are rejected before upload. Pasting a standalone screenshot URL can insert Markdown automatically.
 - **Ranking Criteria** remains one click away, with mode-specific reference material. Its side-panel header now matches osu!web’s 50px navigation height, instead of covering a taller strip.
 - **Replies** can have compact Preview links and Coach controls when their native text editor is present.
 - **Reviews** use a separate multi-block helper strip for Coach and link previews, plus a contextual formatting bar that only appears while typing in the active Review block. Issue embeds can insert Markdown wrappers around selected text; Review paragraphs use osu!web's existing Slate bold/italic shortcuts. The extension never replaces Slate or the Review Post button. These functions passed local fixtures but remain unverified on live osu!web.
@@ -56,6 +68,8 @@ Connect an osu! account to browse discussions started by that account, open foll
 
 ### Metadata and account connection
 
+The Metadata Inspector appears as a magnifying-glass action immediately to the left of the native metadata edit pencil (if editable), and reveals on metadata-column hover; it remains available without editing privileges. It does not add artificial Source rows or modify the native pencil.
+
 The extra beatmap header shows metadata and compact selected-difficulty OD/HP. When metadata requires OAuth, a disconnected state offers an account connection action; request errors while connected offer Retry rather than a misleading “Not loaded.”
 
 OAuth is **optional** for offline writing guidance, Ranking Criteria access, and local drafts. It is needed for the account-aware discussion tools.
@@ -66,7 +80,7 @@ OAuth is **optional** for offline writing guidance, Ranking Criteria access, and
 - Direct image previews request images from their original hosts; those hosts may receive normal browser requests. Ordinary website links do **not** trigger HTML scraping.
 - osu! authentication uses the existing `identify public` scopes, which do **not** grant privileges to post as you, resolve discussions, nominate maps, or inspect private moderation data.
 - **Important:** The current OAuth implementation includes a third-party token-exchange Cloudflare Worker at `https://osu-proxy.ameliar-online.workers.dev/`. It is **not operated by osu!**, and this code has **not received an independent security audit**. Connect only if you trust its operator. Replacing this with an auditable, user-controlled OAuth flow is recommended before wider distribution.
-- Optional s-ul.eu uploading transmits the images you explicitly paste/drop for uploading. Configure the API key in Settings → Integrations.
+- Optional attachment uploading sends explicitly pasted/dropped files to the selected third-party host (s-ul.eu, Catbox, ImgBB or Litterbox). Credentials are optional/required depending on provider; configure preferences in Settings → Integrations. Temporary Litterbox links expire.
 
 ## Known limitations
 
@@ -89,7 +103,7 @@ OAuth is **optional** for offline writing guidance, Ranking Criteria access, and
 | Markdown does not look coloured | The highlighter is normally enabled. Check the highlighter icon near Coach; turn it off and on if needed. New Review is a Slate editor; the extension suppresses its Markdown highlighting on that page entirely to protect native Review editing. |
 | A discussion editor looks empty or behaves strangely | Turn off the highlighter using the highlighter icon, then reload. Report the console error and editor type. The optional display layer must never be required to post. |
 | Coach doesn't refresh | Open Coach, type, then wait about one second; check whether the native editor was replaced by React. |
-| Image paste/drop doesn't upload | Set up your s-ul.eu key, check file type/size and that the native textarea is focused. |
+| Image paste/drop doesn't upload | Verify the selected host supports the file, provide a key if required, check the 4 MB inline-image limit, and focus the native editor. Safe extensionless clipboard images are supported. |
 
 ## Development
 
@@ -121,12 +135,16 @@ The *Road to BN* methodology is Karin-'s independent personal teaching guide, no
 The earlier RC2 syntax highlighter wrapped the native React-managed textarea. That DOM manipulation could conflict with React re-rendering, so RC3 **never wraps or reparents the textarea**. It renders a non-interactive separate layer, enabled by default for native discussion and reply textareas. Test the live editor before publishing a stable v1.1.0.
 
 
+## v1.1.2 local metadata placement correction (2026-10-23)
+
+The Metadata Inspector magnifier is now an inline control beside **Genre** in the native metadata area. osu!web omits its Source row when no source exists; the extension no longer fabricates `Source: Not specified` above Description. Existing real Source content, Description, native edit buttons, inspector copy/export, and the earlier four fixes remain intact. See `V1.1.2_METADATA_LAYOUT_FIX.md` for test results and remaining live-verification limits. **Still v1.1.2, not published.**
+
 ## v1.1.1 candidate additions
 
 - **Download options:** preserves osu!'s own button on main beatmapset pages, with an adjacent expandable menu; on discussion pages, a small + control opens a floating options panel without intercepting the native Download action. Official package and no-video links, Hinai mirror with/no video, full background, cover, audio **preview**, JSON/TXT metadata. Nerinyan is linked to its website (no unverified direct endpoint is invented).
 - **Audio, video and background-only:** a local `.osz` extractor. First download your `.osz`, then select it and choose the asset category. Uses the `.osu` `AudioFilename` and Background event if available, instead of confusing song audio with hitsounds. It does not access a private music stream or claim an audio preview is a full song. ZIP extraction requires a browser with `DecompressionStream('deflate-raw')`; unsupported formats show an error.
 - **Original `.osu` metadata:** optional on-demand raw difficulty retrieval (`/osu/{beatmap_id}`) with graceful fallback to existing page JSON; if osu! rejects or returns HTML, no fabricated content is exported. Tag strings cannot reliably identify storyboard/hitsound contributions; this build does not attempt role classification.
-- **Front-page inspector:** a small upper-right pen button opening a copy/export modal showing original/romanised artist and title, source, genre, language, and unmodified tags. No contributor classification.
+- **Front-page inspector:** a compact magnifier beside the existing Genre value opening a copy/export modal showing original/romanised artist and title, source, genre, language, and unmodified tags. No contributor classification.
 - **Discussions:** enlarged HP/OD strip, category-coloured controls, more consistent My Discussions header buttons, green/red statuses, empty link-preview state, and post-submit preview refresh. Nearby discussion text peek only when the text is already present in the DOM.
 - **Ranking Criteria:** topic switcher for General, Metadata, Standardisation, Current Difficulty, media and modding procedure. Always read the official text for binding interpretations.
 - **Comment badges:** optional public usergroup lookup (BN/NAT/GMT/BSC) only on visible main-mapset comments, with a cap of 12 lookups per page session. Requires the existing osu! OAuth connection. Never simulates staff roles.
@@ -148,7 +166,7 @@ The earlier RC2 syntax highlighter wrapped the native React-managed textarea. Th
 
 ### v1.1.1 local-review notes
 
-This is an **unpublished preview**, not the public v1.1.0 release. The Download options appear from a small `+` beside the native download action. The Source-side metadata magnifier opens an inspector. Draft Coach remains floating and does not close when scrolling or clicking outside.
+This is an **unpublished preview**, not the public v1.1.0 release. The Download options appear from a small `+` beside the native download action. The metadata magnifier beside Genre opens an inspector without creating a Source row. Draft Coach remains floating and does not close when scrolling or clicking outside.
 
 The RC drawer cannot determine the correct map difficulty tier solely from star rating; select it manually when not evident from difficulty naming. Image thumbnails may not load from hosts that reject embedding; the extension keeps a link to the original image.
 
@@ -157,7 +175,7 @@ If Markdown highlighting causes misalignment, turn it off in the editor. The nat
 
 ### v1.1.1 local review-4 adjustments (not published)
 
-- Source inspector now uses the native Source row and is available when Source is unspecified.
+- **Superseded in the v1.1.2 metadata patch:** the inspector now uses the existing Genre/Language metadata cell, without generating a Source row when the source is unspecified.
 - RC topic navigation hides the difficulty-specific selectors for other topics. Custom difficulty names use star-rating bands for a **suggestion only**, never an official RC classification.
 - CS and AR appear with HP/OD on non-mania difficulties when available from the beatmapset payload.
 - Nearby discussions offer a small contextual excerpt from posts already loaded or from an authenticated, rate-limited discussion API lookup.
@@ -175,3 +193,10 @@ If Markdown highlighting causes misalignment, turn it off in the editor. The nat
 - **Draft recovery:** local copies are attached to their editor/mapset context and can be restored manually. Recovering a draft never posts it.
 - **Files:** with a configured s-ul.eu key, user-selected image, document, beatmap and supported media files can be pasted or dropped; non-images insert a Markdown link. Unsupported/executable files are rejected and the hosting service may reject other formats.
 - **Public badges:** groups are only displayed if the public API returns a matching role; probation is not guessed.
+
+### v1.1.2 local preview — connection and usergroups
+On osu!beatmap discussion pages, the floating Connect button now retries status checks after a background-service interruption and reacts to token-storage changes. My Discussions uses the actual `support_level` for osu!supporter hearts (up to three), keeps authenticated state distinct from profile API failures, and separates the banner image from modal controls. Additional comment badges come strictly from API-returned `groups` memberships and require an extension OAuth session; simply signing in on osu!web does not authorize API calls from Modding Helper. See `V1.1.2_AUTH_PROFILE_GROUPS_LOG.md`.
+
+
+### v1.1.2 metadata export panel spacing (local preview)
+All four actions in the Downloads & metadata popover share a two-column grid with more vertical spacing; narrow viewports stack them. The action semantics and network routes are unchanged. See `V1.1.2_METADATA_EXPORT_SPACING_LOG.md`.

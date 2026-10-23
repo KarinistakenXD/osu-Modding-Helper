@@ -39,10 +39,6 @@
 }
 .custom-metadata-block .kmh-metadata-copy:not(:disabled){color:#fff!important}
 
-/* Source inspector must never cover osu!'s native edit button. */
-.beatmapset-info__row>.kmh111-inspect-entry{
-  right:36px!important;inset-inline-end:36px!important;z-index:2!important;
-}
 /* No forced wide download row on the mapset hero. */
 .beatmapset-header .kmh111-download-action-row:has(>.kmh111-dl-toggle){
   max-width:280px!important;flex:0 1 280px!important;min-width:0!important;

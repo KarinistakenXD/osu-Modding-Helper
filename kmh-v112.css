@@ -1,0 +1,418 @@
+/* Compact provider settings. Inherits existing osu!web-inspired modal colors. */
+#mod-helper-settings-modal .kmh-host-settings .kmh-host-select,
+#mod-helper-settings-modal .kmh-host-settings input[type=password] {
+ display:block;width:100%;max-width:100%;min-width:0;margin:3px 0 11px;
+ padding:10px 12px;border-radius:5px;border:1px solid var(--kmh-line);
+ color:var(--kmh-white);background:var(--kmh-recess);font:inherit;font-size:12px;
+}
+#mod-helper-settings-modal .kmh-host-settings label {display:block;margin:10px 0 5px;font-weight:600;color:var(--kmh-white);}
+#mod-helper-settings-modal .kmh-host-settings .kmh-host-credentials {display:block;min-width:0;}
+#mod-helper-settings-modal .kmh-host-settings .kmh-host-note {display:block;line-height:1.6;color:var(--kmh-secondary);margin:10px 0;}
+#mod-helper-settings-modal .kmh-host-settings details {font-size:11px;line-height:1.55;color:var(--kmh-secondary);}
+@media(max-width:610px){#mod-helper-settings-modal .kmh-host-settings .kmh-host-credentials{grid-template-columns:1fr;}}
+
+/* v1.1.2 metadata inspector: peer of osu!web's native metadata edit action.
+   The original React-owned pencil and metadata rows remain untouched. */
+.beatmapset-info__box > .kmh111-inspect-action {
+  position: absolute;
+  top: 5px;
+  right: 0;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms;
+}
+/* osu!web's btn-circle is 30px; allow 4px between inspector and pencil. */
+.beatmapset-info__box > .kmh111-inspect-action--with-edit {right: 34px;}
+.beatmapset-info__box:is(:hover, :focus-within) > .kmh111-inspect-action {
+  opacity: 1;
+  pointer-events: auto;
+}
+.beatmapset-info__box > .kmh111-inspect-action > .btn-circle {
+  /* Inherit exact btn-circle dimensions, colours, hover and focus treatment. */
+  margin: 0;
+}
+@media (hover: none) {
+  /* Hover-only actions are inaccessible on touch screens. */
+  .beatmapset-info__box > .kmh111-inspect-action {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .beatmapset-info__box > .kmh111-inspect-action {transition: none;}
+}
+
+/* v1.1.2 final UI: native OAuth actions, icon-only Coach, contextual attachments. */
+.custom-metadata-block .kmh-meta-status .kmh-metadata-auth-action {
+  display:inline-flex;
+  align-items:center;
+  vertical-align:middle;
+  margin:4px 0 0 4px;
+  max-width:100%;
+  white-space:normal;
+  text-align:center;
+}
+.custom-metadata-block .kmh-meta-status .kmh-metadata-auth-action .btn-osu-big__content,
+#mod-helper-settings-modal .kmh-auth-native-button .btn-osu-big__content {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-width:0;
+}
+.custom-metadata-block .kmh-meta-status .kmh-metadata-auth-action .btn-osu-big__icon-inline,
+#mod-helper-settings-modal .kmh-auth-native-button .btn-osu-big__icon-inline {flex:0 0 auto;}
+.custom-metadata-block .kmh-meta-status .kmh-metadata-auth-action[disabled],
+#mod-helper-settings-modal .kmh-auth-native-button[disabled] {cursor:progress;opacity:.78;}
+#mod-helper-settings-modal .kmh-auth-native-button {flex-shrink:0;max-width:100%;}
+#mod-helper-settings-modal .kmh-auth-native-button .kmh-auth-button-label {overflow-wrap:anywhere;}
+
+/* Keep Coach a single icon, not a persistent large primary CTA. */
+.beatmap-discussion-new .kmh-editor-actions [data-kmh-open-coach] {
+  display:inline-flex!important;
+  width:30px!important;
+  min-width:30px!important;
+  height:29px!important;
+  min-height:29px!important;
+  padding:0!important;
+  border-radius:4px!important;
+  border:1px solid transparent!important;
+  box-shadow:none!important;
+  background:transparent!important;
+  color:hsl(var(--hsl-c2,200,40%,90%))!important;
+}
+.beatmap-discussion-new .kmh-editor-actions [data-kmh-open-coach]:not(.is-active):hover {
+  background:hsl(var(--hsl-b3,200,10%,25%))!important;
+}
+.beatmap-discussion-new .kmh-editor-actions [data-kmh-open-coach] .kmh-tool-label {display:none!important;}
+/* One unambiguous, accessible toggle treatment across all quick-access tools. */
+.beatmap-discussion-new .kmh-editor-actions :is(
+  [data-kmh-open-finder],[data-kmh-open-rc],[data-kmh-open-coach],[data-kmh-toggle-markdown]
+).is-active {
+  color:hsl(var(--hsl-h1,200,100%,75%))!important;
+  background:hsla(var(--hsl-h2,200,50%,45%),.26)!important;
+  border-color:hsla(var(--hsl-h1,200,100%,70%),.75)!important;
+  box-shadow:0 0 0 1px hsla(var(--hsl-h1,200,100%,70%),.16), 0 0 9px hsla(var(--hsl-h2,200,50%,45%),.4)!important;
+  text-shadow:0 0 6px hsla(var(--hsl-h1,200,100%,70%),.45)!important;
+}
+/* Attachments occupy zero toolbar space until a real URL is detected. */
+.beatmap-discussion-new .kmh-editor-actions .kmh-link-context {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-size:10px;
+  color:hsl(var(--hsl-h1,200,100%,70%));
+  padding:0 7px;
+  white-space:nowrap;
+}
+.beatmap-discussion-new .kmh-editor-actions .kmh-link-context[hidden],
+.kmh-reply-preview-btn[hidden] {display:none!important;}
+.beatmap-discussion-new .kmh-editor-actions .kmh-link-context.is-active {
+  background:hsla(var(--hsl-h2,200,50%,45%),.22);
+  border-color:hsl(var(--hsl-h2,200,50%,45%));
+}
+@media (prefers-reduced-motion: reduce) {
+  .beatmap-discussion-new .kmh-editor-actions .kmh-editor-tool,
+  .custom-metadata-block .kmh-metadata-auth-action {transition:none!important;}
+}
+
+/* v1.1.2 connection surfaces: more vertical space, clear hierarchy, osu!web-native CTAs.
+   Only extension-owned containers are targeted. */
+.custom-metadata-block .kmh-metadata-details {padding-block:18px;gap:9px;}
+.custom-metadata-block .kmh-metadata-tags {padding-block:18px;}
+.custom-metadata-block .custom-metadata-line:has(> .kmh-meta-status:not(:empty)) {
+  align-items:flex-start;
+  row-gap:10px;
+}
+.custom-metadata-block .kmh-meta-status:empty {display:none;}
+.custom-metadata-block .kmh-meta-status:not(:empty) {
+  box-sizing:border-box;
+  display:flex;
+  flex:0 0 100%;
+  width:100%;
+  min-width:0;
+  align-items:stretch;
+  flex-direction:column;
+  gap:10px;
+  padding:13px 14px 14px;
+  margin:4px 0 5px;
+  color:hsl(var(--hsl-f1,200,10%,75%));
+  background:hsl(var(--hsl-b5,200,10%,17%));
+  border-left:2px solid hsl(var(--hsl-h1,200,90%,67%));
+  border-radius:3px;
+  font-size:12px;
+  line-height:1.55;
+}
+.custom-metadata-block .kmh-meta-status-copy {
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.custom-metadata-block .kmh-meta-status-title {
+  color:hsl(var(--hsl-c1,200,40%,90%));
+  font-size:12px;
+  font-weight:700;
+}
+.custom-metadata-block .kmh-meta-status-message {font-weight:400;}
+.custom-metadata-block .kmh-meta-status--loading {
+  flex-direction:row;
+  align-items:center;
+  gap:9px;
+}
+.custom-metadata-block .kmh-meta-status .kmh-metadata-auth-action {
+  box-sizing:border-box;
+  align-self:flex-start;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:36px;
+  max-width:100%;
+  margin:1px 0 0;
+  padding:8px 13px;
+  font-size:12px;
+  font-weight:600;
+  line-height:1.25;
+  white-space:normal;
+  text-align:center;
+}
+.custom-metadata-block .kmh-meta-status .kmh-metadata-auth-action:focus-visible,
+#mod-helper-settings-modal .kmh-auth-native-button:focus-visible {
+  outline:2px solid hsl(var(--hsl-c1,200,40%,90%));
+  outline-offset:2px;
+}
+/* OAuth card: don't put the neutral session state beside a primary CTA. */
+#mod-helper-settings-modal .kmh-auth-settings {
+  padding:21px 20px 23px;
+}
+#mod-helper-settings-modal .kmh-auth-settings h4 {
+  margin-bottom:9px;
+  line-height:1.4;
+}
+#mod-helper-settings-modal .kmh-auth-settings > p {
+  margin-bottom:13px;
+  line-height:1.65;
+}
+#mod-helper-settings-modal .kmh-auth-settings .kmh-trust-note {
+  box-sizing:border-box;
+  margin:13px 0 18px;
+  padding:11px 13px;
+  border-left:2px solid hsl(var(--hsl-h1,200,90%,65%));
+  background:hsl(var(--hsl-b5,200,10%,17%));
+  color:var(--kmh-secondary);
+  line-height:1.6;
+  overflow-wrap:anywhere;
+}
+#mod-helper-settings-modal .kmh-auth-settings .kmh-integration-controls {
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:12px;
+  padding:4px 0 2px;
+}
+#mod-helper-settings-modal .kmh-auth-settings #mod-helper-osu-status {
+  order:-1;
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin:0;
+  padding:5px 9px;
+  max-width:100%;
+  font-size:11px;
+  line-height:1.5;
+  font-weight:600;
+  color:hsl(var(--hsl-f1,200,10%,75%))!important;
+  background:hsl(var(--hsl-b5,200,10%,17%));
+  border:1px solid hsl(var(--hsl-b3,200,10%,26%));
+  border-radius:4px;
+  overflow-wrap:anywhere;
+}
+#mod-helper-settings-modal .kmh-auth-settings #mod-helper-osu-status::before {
+  content:'';
+  flex:0 0 6px;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:currentColor;
+}
+#mod-helper-settings-modal .kmh-auth-settings #mod-helper-osu-status.kmh-auth-status-ok {color:#90e9a0!important;}
+#mod-helper-settings-modal .kmh-auth-settings #mod-helper-osu-status.kmh-auth-status-error {color:#ff8585!important;}
+#mod-helper-settings-modal .kmh-auth-settings .kmh-auth-native-button {
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  max-width:100%;
+  padding:9px 14px;
+  margin:0;
+  border-radius:5px;
+  font-size:12px;
+  font-weight:600;
+  line-height:1.3;
+  white-space:normal;
+}
+@media (max-width:600px) {
+  .custom-metadata-block .kmh-metadata-details,
+  .custom-metadata-block .kmh-metadata-tags {padding-block:17px;}
+  #mod-helper-settings-modal .kmh-auth-settings {padding:18px 16px 20px;}
+}
+
+/* v1.1.2: My Discussions header uses a separate cover strip, never a washed-out
+   photograph underneath unrelated modal actions. All selectors are extension-scoped. */
+.kmh-workspace-overlay .kmh-profile-shell.kmh-has-profile {
+  background-image:none!important;
+  background-color:hsl(var(--hsl-b4))!important;
+}
+.kmh-workspace-overlay .kmh-profile-shell .kmh-workspace-hero {
+  background:hsl(var(--hsl-b4))!important;
+  min-height:82px;
+  box-sizing:border-box;
+  border-bottom:1px solid hsla(var(--hsl-h1),.35);
+}
+.kmh-workspace-overlay .kmh-profile-shell.kmh-has-profile .kmh-account-strip {
+  background-image:linear-gradient(90deg,rgba(13,20,27,.94) 0%,rgba(16,23,30,.88) 35%,rgba(15,21,28,.64) 100%),var(--kmh-cover-image,none)!important;
+  background-position:center,center 36%!important;
+  background-size:cover!important;
+  background-repeat:no-repeat!important;
+  padding-block:15px!important;
+  min-height:115px;
+  box-sizing:border-box;
+  border-bottom:1px solid hsl(var(--hsl-b2));
+}
+.kmh-workspace-overlay .kmh-profile-identity {
+  align-items:center;
+  gap:14px;
+}
+.kmh-workspace-overlay .kmh-profile-avatar {
+  height:64px;
+  width:64px;
+  flex:0 0 64px;
+  border-radius:18px;
+  border:2px solid hsla(var(--hsl-c1),.55);
+  box-shadow:0 4px 14px rgba(0,0,0,.4);
+}
+.kmh-workspace-overlay .kmh-profile-info {gap:5px;min-width:0;}
+.kmh-workspace-overlay .kmh-profile-name-line {
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  min-width:0;
+}
+.kmh-workspace-overlay .kmh-profile-name {font-size:19px;line-height:1.3;font-weight:750;}
+.kmh-workspace-overlay .kmh-profile-user-title {
+  font-size:12px;
+  font-weight:600;
+  line-height:1.3;
+  color:hsl(var(--hsl-f1));
+}
+.kmh-workspace-overlay .kmh-profile-icons.profile-info__icons--name-inline {
+  display:inline-flex!important;
+  align-items:center;
+  font-size:13px;
+  gap:4px;
+  margin:0;
+}
+.kmh-workspace-overlay .kmh-profile-icons .profile-info__icon--supporter {
+  display:inline-flex;
+  gap:3px;
+  align-items:center;
+  height:auto;
+  min-height:21px;
+  line-height:1;
+  padding:4px 9px;
+  border-radius:20px;
+  background:hsl(var(--hsl-pink-1));
+  color:#fff;
+  font-size:12px;
+  text-decoration:none;
+}
+.kmh-workspace-overlay .kmh-profile-status {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:hsl(var(--hsl-f1));
+  font-weight:500;
+  font-size:10px;
+}
+.kmh-workspace-overlay .kmh-profile-status::before {
+  content:'';
+  height:6px;width:6px;
+  border-radius:50%;
+  background:hsl(var(--hsl-lime-1));
+}
+.kmh-workspace-overlay .kmh-profile-badges {gap:5px;}
+.kmh-workspace-overlay .kmh-profile-badges .user-group-badge {
+  padding:3px 8px!important;
+  min-height:20px;
+  font-size:10px;
+  background:hsla(var(--hsl-b6),.72);
+  border:1px solid hsla(var(--hsl-b1),.55);
+  border-radius:20px;
+}
+.kmh-workspace-overlay .kmh-profile-badges .user-group-badge:hover {
+  background:hsla(var(--hsl-b6),.95)!important;
+}
+.kmh-workspace-overlay .kmh-profile-shell .kmh-account-strip [data-connect] {
+  flex:0 0 auto;
+  align-self:center;
+  min-height:29px;
+  padding:6px 11px;
+  border-radius:5px;
+  font-size:11px;
+  font-weight:650;
+  background:hsla(var(--hsl-b5),.82)!important;
+  border:1px solid hsla(var(--hsl-f1),.24);
+}
+.kmh-workspace-overlay .kmh-profile-shell .kmh-account-strip [data-connect]:hover {
+  background:hsla(var(--hsl-b3),.94)!important;
+}
+.kmh-group-wrapper {max-width:100%;flex:0 1 auto;}
+.kmh-group-wrapper .user-group-badge {max-width:100%;}
+@media (max-width:640px) {
+  .kmh-workspace-overlay .kmh-profile-shell.kmh-has-profile .kmh-account-strip {padding:12px!important;gap:10px;}
+  .kmh-workspace-overlay .kmh-profile-avatar {width:52px;height:52px;flex-basis:52px;border-radius:14px;}
+  .kmh-workspace-overlay .kmh-profile-name {font-size:17px;}
+  .kmh-workspace-overlay .kmh-profile-name-line {gap:6px;}
+}
+
+
+/* v1.1.2: metadata export actions — two deliberate rows with breathing room.
+   Scoped to the download popover so native site buttons and other tools are unchanged. */
+.kmh111-dl-menu .kmh111-dl-group--metadata {
+  padding: 14px 12px 15px !important;
+}
+.kmh111-dl-menu .kmh111-dl-group--metadata > h4 {
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+.kmh111-dl-menu .kmh111-dl-inline--metadata {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 8px;
+  row-gap: 9px;
+  align-items: stretch;
+}
+.kmh111-dl-menu .kmh111-dl-inline--metadata > .kmh111-dl-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 35px;
+  margin: 0;
+  padding: 8px 7px;
+  line-height: 1.3;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 330px) {
+  .kmh111-dl-menu .kmh111-dl-inline--metadata {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

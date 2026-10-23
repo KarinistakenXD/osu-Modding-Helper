@@ -244,10 +244,13 @@ const WORKER_PROXY_URL = 'https://osu-proxy.ameliar-online.workers.dev/';
     async function getAuthStatus() {
         const existing = await getStoredToken();
         if (!existing) return { connected: false };
+        const expired = !Number.isFinite(Number(existing.expiresAt)) || existing.expiresAt <= Date.now();
+        const refreshable = !!existing.refreshToken;
         return {
-            connected: true,
+            connected: (!!existing.accessToken && !expired) || refreshable,
             expiresAt: existing.expiresAt,
-            expired: existing.expiresAt <= Date.now()
+            expired,
+            refreshable
         };
     }
 

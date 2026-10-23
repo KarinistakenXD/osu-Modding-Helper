@@ -31,7 +31,7 @@ async function injectMetadataBox() {
         <div class="kmh-metadata-layout">
             <div class="kmh-metadata-details">
                 <div class="custom-metadata-line"><strong>Source:</strong> <code class="custom-tags-code kmh-source-value" id="custom-source-loader">${spinner}</code><button type="button" class="btn-osu-big kmh-metadata-copy custom-copy-button custom-copy-button--source btn-osu-big--disabled" id="copy-source-genre" title="Copy source and genre" aria-label="Copy source and genre" disabled><span class="kmh-copy-label">Copy</span><i class="fas fa-copy" aria-hidden="true"></i></button></div>
-                <div class="custom-metadata-line"><strong>Genre:</strong> <code class="custom-tags-code kmh-genre-value" id="custom-genre-loader">${spinner}</code><span class="custom-metadata-separator">/</span><code class="custom-tags-code kmh-genre-value" id="custom-language-loader">${spinner}</code><span class="kmh-meta-status" role="status"></span></div>
+                <div class="custom-metadata-line"><strong>Genre:</strong> <code class="custom-tags-code kmh-genre-value" id="custom-genre-loader">${spinner}</code><span class="custom-metadata-separator">/</span><code class="custom-tags-code kmh-genre-value" id="custom-language-loader">${spinner}</code><span class="kmh-meta-status" role="status" aria-live="polite" aria-atomic="true"></span></div>
             </div>
 
             <div class="kmh-metadata-tags">
@@ -94,23 +94,67 @@ async function injectMetadataBox() {
     const genreFromPage = mapData.genre?.name;
     const langFromPage = mapData.language?.name;
     const statusEl = metaBlock.querySelector('.kmh-meta-status');
-    function clearStatus() { if (statusEl) statusEl.replaceChildren(); }
+    function clearStatus() {
+        if (!statusEl) return;
+        statusEl.classList.remove('kmh-meta-status--action', 'kmh-meta-status--loading');
+        statusEl.replaceChildren();
+    }
     function showAction(message, label, handler, retry = false) {
         if (!statusEl) return;
-        statusEl.replaceChildren();
-        const text = document.createElement('span'); text.textContent = message;
+        clearStatus();
+        statusEl.classList.add('kmh-meta-status--action');
+        const copy = document.createElement('span');
+        copy.className = 'kmh-meta-status-copy';
+        const title = document.createElement('strong');
+        title.className = 'kmh-meta-status-title';
+        title.textContent = retry ? 'Metadata could not be loaded' : 'Genre and language unavailable';
+        const text = document.createElement('span');
+        text.className = 'kmh-meta-status-message';
+        text.textContent = message;
+        copy.append(title, text);
         const btn = document.createElement('button');btn.type='button';
-        btn.className = retry ? 'kmh-metadata-retry' : 'kmh-metadata-connect';
-        btn.textContent = label;btn.addEventListener('click',handler);
-        statusEl.append(text, document.createTextNode(' '), btn);
+        btn.className = `btn-osu-big kmh-metadata-auth-action ${retry ? 'kmh-metadata-retry' : 'kmh-metadata-connect'}`;
+        btn.innerHTML = '<span class="btn-osu-big__content"><span class="btn-osu-big__icon-inline btn-osu-big__icon-inline--left"><i class="fas fa-sync-alt" aria-hidden="true"></i></span><span class="kmh-metadata-action-label"></span></span>';
+        btn.querySelector('.kmh-metadata-action-label').textContent = label;
+        btn.querySelector('.btn-osu-big__icon-inline i').className = retry ? 'fas fa-redo' : 'fas fa-external-link-alt';
+        btn.addEventListener('click',handler);
+        statusEl.append(copy, btn);
     }
     function connectAccount() {
         const opener = metaBlock.querySelector('.kmh-metadata-connect');
-        if (typeof toggleModHelperSettings === 'function') {
-            const modal = document.getElementById('mod-helper-settings-modal');
-            if (!modal) toggleModHelperSettings(opener);
-            document.querySelector('#mod-helper-settings-modal [data-settings-tab="integrations"]')?.click();
+        if (!opener || opener.disabled) return;
+        const icon = opener.querySelector('.btn-osu-big__icon-inline i');
+        const text = opener.querySelector('.kmh-metadata-action-label');
+        opener.disabled = true;
+        opener.classList.add('kmh-is-loading');
+        opener.setAttribute('aria-busy', 'true');
+        icon.className = 'fas fa-spinner fa-spin';
+        text.textContent = 'Opening settings…';
+        // This button intentionally opens the documented OAuth settings first:
+        // the third-party token exchange disclosure must remain visible before consent.
+        try {
+            if (typeof toggleModHelperSettings !== 'function') throw new Error('Settings unavailable');
+            if (!document.getElementById('mod-helper-settings-modal')) toggleModHelperSettings(opener);
+            const tab = document.querySelector('#mod-helper-settings-modal [data-settings-tab="integrations"]');
+            if (!tab) throw new Error('Account settings unavailable');
+            tab.click();
             document.getElementById('mod-helper-osu-connect')?.focus();
+            // Reset after the settings panel has been displayed, not on a guessed timer.
+            requestAnimationFrame(() => {
+                if (!opener.isConnected) return;
+                opener.disabled = false;
+                opener.classList.remove('kmh-is-loading');
+                opener.removeAttribute('aria-busy');
+                icon.className = 'fas fa-external-link-alt';
+                text.textContent = 'Connect osu! ↗';
+            });
+        } catch (error) {
+            opener.disabled = false;
+            opener.classList.remove('kmh-is-loading');
+            opener.removeAttribute('aria-busy');
+            icon.className = 'fas fa-exclamation-circle';
+            text.textContent = 'Settings unavailable';
+            if (statusEl) statusEl.title = String(error?.message || error);
         }
     }
     const fallbackReady = !!genreFromPage && !!langFromPage;
@@ -122,7 +166,10 @@ async function injectMetadataBox() {
     function loadMetadata() {
         if (!metaBlock.isConnected) return;
         clearStatus();
-        if (!fallbackReady) statusEl.textContent = 'Fetching…';
+        if (!fallbackReady && statusEl) {
+            statusEl.classList.add('kmh-meta-status--loading');
+            statusEl.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span>Loading genre and language…</span>';
+        }
         try { chrome.runtime.sendMessage({ action: 'fetchBeatmap', setId }, response => {
             if (!metaBlock.isConnected) return;
             const error = chrome.runtime.lastError?.message || response?.error;
@@ -138,11 +185,11 @@ async function injectMetadataBox() {
             chrome.runtime.sendMessage({ action: 'getAuthStatus' }, authResponse => {
                 if (!metaBlock.isConnected) return;
                 const connected = !!authResponse?.data?.connected;
-                if (!connected) showAction('Genre/language require a connected osu! account.', 'Connect osu! ↗', connectAccount);
-                else showAction('Metadata unavailable from osu! API.', 'Retry ↻', loadMetadata, true);
+                if (!connected) showAction('Connect your osu! account to load these fields.', 'Connect osu!', connectAccount);
+                else showAction('osu! API could not return these fields.', 'Retry', loadMetadata, true);
             });
         }); } catch {
-            if (!fallbackReady) showAction('API request could not start.', 'Retry ↻', loadMetadata, true);
+            if (!fallbackReady) showAction('The API request could not start.', 'Retry', loadMetadata, true);
         }
     }
     loadMetadata();

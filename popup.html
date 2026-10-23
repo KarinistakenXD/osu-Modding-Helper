@@ -11,12 +11,12 @@ header{display:flex;align-items:center;gap:11px;padding:17px 18px;border-bottom:
 #connection-status{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:var(--bright)}#connection-status:before{content:'';width:7px;height:7px;border-radius:50%;background:#efac67}body[data-connected="true"] #connection-status:before{background:#b9dd73}
 button{font:700 12px Torus,Inter,Arial,sans-serif;cursor:pointer;border:0;border-radius:5px;padding:10px 12px;color:#fff;background:var(--primary);transition:filter .12s}button:hover{filter:brightness(1.14)}button:disabled{opacity:.45;cursor:wait}button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--bright);outline-offset:2px}
 #auth-action{width:100%;margin-top:10px;min-height:40px;font-size:13px}body[data-connected="true"] #auth-action{background:hsl(200,10%,29%);font-size:12px}body[data-connected="true"] #open-workspace{background:var(--primary)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid .kmh-popup-coach{grid-column:1/-1}.secondary{background:hsl(200,10%,29%)}
-details{padding:12px 13px;background:var(--panel);border-radius:6px}summary{font-size:12px;font-weight:800;cursor:pointer}label{font-size:11px;color:var(--muted);display:block;margin:12px 0 5px}input{display:block;width:100%;color:#fff;background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:9px;font:12px Inter,Arial,sans-serif}#save-btn{margin-top:9px;width:100%}
+details{padding:12px 13px;background:var(--panel);border-radius:6px}summary{font-size:12px;font-weight:800;cursor:pointer}label{font-size:11px;color:var(--muted);display:block;margin:12px 0 5px}input,select{display:block;width:100%;color:#fff;background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:9px;font:12px Inter,Arial,sans-serif}#save-btn{margin-top:9px;width:100%}
 #popup-note{padding:0 15px 16px;color:var(--muted);font-size:11px;min-height:20px;line-height:1.5}a{color:var(--bright)}.scope-note{font-size:10.5px!important}
 </style>
 </head>
 <body data-connected="false">
-<header><i aria-hidden="true">⚙</i><div><h1>Modding Helper</h1><small>Discussion tools · v1.1.0 RC4</small></div></header>
+<header><i aria-hidden="true">⚙</i><div><h1>Modding Helper</h1><small>Discussion tools · v1.1.2 Preview</small></div></header>
 <main>
 <section class="card" aria-labelledby="account-label">
 <div id="connection-status" role="status">Checking osu! connection…</div>
@@ -31,7 +31,14 @@ details{padding:12px 13px;background:var(--panel);border-radius:6px}summary{font
       <button type="button" id="open-draft-coach" class="kmh-popup-coach">Draft Coach · review local modpost</button>
 <button type="button" id="replay-onboarding" class="kmh-popup-coach secondary">▶ Guided introduction</button>
 </div>
-<details><summary>Image uploads · s-ul.eu</summary><label for="sul-key">Personal API key</label><input type="password" id="sul-key" autocomplete="off" placeholder="Paste your upload key"><button type="button" id="save-btn">Save API key</button></details>
+<details><summary>Hosting · Images & attachments</summary>
+<label for="upload-provider">Upload provider</label><select id="upload-provider"><option value="smart">Smart · s-ul then Catbox</option><option value="sul">s-ul.eu</option><option value="catbox">Catbox</option><option value="imgbb">ImgBB</option><option value="litterbox">Litterbox (temporary)</option></select>
+<label for="sul-key">s-ul.eu API key</label><input type="password" id="sul-key" autocomplete="off">
+<label for="catbox-key">Catbox userhash (optional)</label><input type="password" id="catbox-key" autocomplete="off">
+<label for="imgbb-key">ImgBB API key</label><input type="password" id="imgbb-key" autocomplete="off">
+<label for="litterbox-expiry">Temporary expiry</label><select id="litterbox-expiry"><option value="1h">1 hour</option><option value="12h">12 hours</option><option value="24h">24 hours</option><option value="72h">72 hours</option></select>
+<p>Uploads are public. Smart mode selects an eligible host before uploading, never silently retries on another service.</p>
+<button type="button" id="save-btn">Save hosting settings</button></details>
 </main>
 <div id="popup-note" role="status">Open an osu! beatmap discussion page for the full workspace.</div>
 <script src="popup.js"></script>

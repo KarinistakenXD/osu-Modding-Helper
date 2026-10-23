@@ -1,3 +1,49 @@
+## v1.1.2 — Metadata export button spacing (local preview, uncommitted)
+
+- Arrange the four existing download-panel metadata actions in a balanced 2×2 grid; keep all actions inside the same container.
+- Add adequate heading, button, and top/bottom spacing, with a one-column fallback for extremely narrow windows.
+- Preserve all existing operations, previous auth/profile/group changes, manifest version and permissions.
+- See `V1.1.2_METADATA_EXPORT_SPACING_LOG.md` for verification and scope.
+
+## v1.1.2 — Connection layout and vertical spacing (LOCAL PREVIEW, uncommitted)
+
+- Separate the metadata auth notice from the cramped inline Genre/Language row; increase vertical padding in both metadata columns and inside the notice.
+- Stack OAuth status above the native Connect button, enlarge spacing in Integrations, and use a neutral disconnected badge instead of a red error indication.
+- Preserve third-party OAuth disclosure, pending-operation spinners, upstream native buttons, preceding four fixes, the inspector, and all other existing functionality.
+- Isolated Chromium checks at 1440 / 950 / 500 / 370 px and previous regression suites passed. See `V1.1.2_CONNECTION_LAYOUT_LOG.md`.
+
+## v1.1.2 — Final UI refinement (local preview, uncommitted)
+
+- Switched metadata authentication actions and the Settings OAuth button to osu!web `btn-osu-big` markup with meaningful progress icons and disabled states.
+- Converted New Discussion Draft Coach to a single icon toggle; added consistent active highlights for Draft Coach, Ranking Criteria, My discussions and Markdown highlighting.
+- Replaced the always-visible attachment preview icon with an on-demand, clickable link-count chip; reply preview shortcuts hide when there are no links.
+- Preserved the third-party OAuth proxy disclosure, native posting controls, previous metadata inspector placement and all prior v1.1.2 fixes.
+- Added targeted isolated Chromium tests and `V1.1.2_FINAL_UI_LOG.md`.
+
+### v1.1.2 local preview — native metadata action alignment (unpublished)
+
+- Place the Metadata Inspector magnifying-glass button immediately **left of** osu!web’s native metadata pencil, using its own extension-owned action wrapper; do not modify React-owned editing controls.
+- Match native `btn-circle` dimensions, hover colours and 120ms hover reveal of the metadata box. Hide the action when the pointer leaves the box; retain focus and touch accessibility.
+- On beatmapsets without an edit pencil, keep the Inspector as a single right-hand action. Preserve real Source fields and the previous four fixes. Remove obsolete conflicting inspector styling rules.
+- Validate placement, 4px action spacing, mouse hover, React-style replacement, navigation cleanup and Source/no-Source cases at 1440/950/500/370px in isolated Chromium fixtures. Live osu!web remains unverified.
+
+## v1.1.2 — Metadata inspector placement correction (local preview, 2026-10-23; NOT published)
+
+- Remove fabricated `Source: Not specified` metadata rows and the old Description-column fallback.
+- Attach Metadata Inspector to the existing Genre/Language metadata area, inline beside Genre, on front-page beatmapset information only. Keep osu!web's real Source field intact when it exists.
+- Clean obsolete inspector controls when osu!web replaces the metadata DOM or the browser navigates away.
+- Preserve inspector viewing/copying/JSON export and all four previous v1.1.2 fixes. No manifest version or permission changes.
+- Added isolated Chromium tests at 1440/950/500/370 px (DOM structure based on current `ppy/osu-web` info.tsx) including React-like rerender and navigation; live signed-in osu!web remains unverified.
+
+## v1.1.2 — Four focused fixes (local preview, 2026-10-23; NOT published)
+
+- **Link preview lifecycle:** Rebind existing body-level preview portals to replacement React textareas in the same editor host, update their popover anchor if the toolbar button changes, abort obsolete listeners, and remove detached previews on unmount or navigation away from discussion pages. Preserve preview contents, links, cards, and the live-open state when possible.
+- **Draft Coach lifecycle:** Rebind IME/input handlers to replacement native textareas; remove stale Coach panels/listeners/timers, preserve open Coach functionality, and avoid closing unrelated popovers. The reply Coach also stops holding onto a previous textarea.
+- **Extensionless clipboard images:** Accept allowlisted image MIME types for files without an extension (e.g. clipboard `image`/`image/png`), supply a safe matching upload filename, and continue rejecting executable filenames, unsupported types, and images over the conservative 4,000,000-byte embed limit.
+- **OAuth status:** Show expired access tokens with stored refresh tokens as connected and automatically refreshable, rather than demanding a new interactive sign-in. Sessions with no usable access/refresh token still offer Connect. Status checks do not initiate OAuth or remote refresh.
+- Added offline regression fixtures for browser component replacement at 1440/950/500/370 px, paste safety, and auth status/settings. The previous GIF boundary tests still pass. See `V1.1.2_FOUR_FIXES.md` for test boundaries.
+- No feature removals, manifest version change, permission changes, GitHub commit, tag, push or release.
+
 ## v1.1.1 — Profile-page compatibility fix
 
 - Restricted injected scripts and CSS to `osu.ppy.sh/beatmapsets/*` instead of every osu! page. This prevents Modding Helper UI styling, highlighting layers, and onboarding effects from leaking into user-profile covers or unrelated pages.
@@ -113,3 +159,36 @@ Local browser and syntax tests pass for the covered fixtures. Live osu!web Revie
 - Official public group badges for comments and replies, preserving probation and ruleset icons.
 - My Discussions cover/avatar/account header with public groups and supporter indicator.
 - Copy Source alignment and red/green OAuth status with white button labels.
+
+## v1.1.2 Preview — multi-host image/attachment uploads (2026-10-23)
+
+- Added a local hosting-provider selector to both extension popup and osu!web Settings.
+- Added Catbox (anonymous or userhash), ImgBB (API key), and temporary Litterbox to the existing s-ul.eu integration.
+- Added pre-upload Smart selection based on configured credentials, file type, size and persistence suitability; no silent reupload after a network failure.
+- Extended direct-image preview and auto-paste detection to support more formats, GIFs, image URLs with query strings, extensionless `![](URL)` targets and additional direct-image hosts.
+- Enforced a 48 MB local transport limit and documented that provider quota visibility is unavailable.
+- Preserved osu!web editor control and local-only preferences. No GitHub publication.
+
+## v1.1.2 GIF / image embed compatibility patch (local preview)
+
+- Conservative osu! discussion embed threshold: **4,000,000 bytes** (4 decimal MB). Community guidance reports a **4 MB** maximum for remote images cached by osu!. Exact 4 MiB vs decimal MB server cutoff was not verified.
+- Applies to files that would become inline image embeds: GIF, PNG, JPEG, WebP, AVIF, APNG, BMP, SVG and ICO. Files intended as ordinary download links remain subject to provider/transport limits.
+- Drag and Ctrl+V **reject before FileReader or upload** if an inline image is over the threshold, showing a 14-second red/error notice with size, action to compress, and confirmation that the upload was not attempted.
+- Background uploader checks the same policy after decoding and before selecting any host/network request. Switching upload providers does not bypass the limit.
+- Images at or below the conservative threshold can proceed as before. Server caching/hotlink support cannot be guaranteed merely by passing file size.
+- Already-hosted image URLs (including manually written `![](url)`) have no reliable local File.size; the extension does not pretend to verify their dimensions/byte size or automatically download third-party URLs.
+- Source: https://osu.ppy.sh/community/forums/topics/2175226 and https://osu.ppy.sh/community/forums/topics/1612139 .
+
+## v1.1.2 (local preview — auth/profile/group review)
+- Recover floating Connect control from interrupted startup and stale refresh throttles; resync on focus/visibility/token changes.
+- Rebuild the My Discussions identity/cover section using osu!web supporter hearts from `support_level`, preserving multiple real group memberships and distinguishing OAuth status from profile API errors.
+- Improve verified comment group badges for multiple memberships without replacing native author DOM or inventing roles; gate additional user lookups behind extension OAuth.
+- Add synthetic Chromium tests and `V1.1.2_AUTH_PROFILE_GROUPS_LOG.md`. Unpublished local build.
+
+## v1.1.2 local preview — Metadata action spacing
+
+- Aligned Copy metadata, Export .txt, Export .json and Read .osu metadata in a consistent two-by-two button grid with equal widths.
+- Increased metadata card top/bottom padding, button height and vertical gaps; use single-column layout below 331px.
+- Left download links, editor, upload flows, other popovers and manifest permissions unchanged.
+- Added `tests/metadata_download_spacing_browser.py` and screenshot fixture; no translation or summarization API added.
+- No GitHub commit or release.

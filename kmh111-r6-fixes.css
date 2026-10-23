@@ -1,21 +1,4 @@
 /* v1.1.1 R6: follow osu!web rather than replacing React-owned controls. */
-/* The Source inspector shares osu!'s native btn-circle visual hierarchy. */
-.beatmapset-info__row:has(>button.kmh111-inspect-entry){position:relative!important;padding-right:70px!important;min-height:31px!important}
-.beatmapset-info__row>button.kmh111-inspect-entry.btn-circle{
-  position:absolute!important;inset:0 37px auto auto!important;
-  display:inline-flex!important;align-items:center!important;justify-content:center!important;
-  box-sizing:border-box!important;margin:0!important;padding:0!important;
-  border:0!important;border-radius:100%!important;
-  width:30px!important;height:30px!important;min-width:30px!important;
-  background:transparent!important;color:hsl(var(--hsl-c1))!important;
-  box-shadow:none!important;font-size:12px!important;line-height:1!important;
-  z-index:2!important;cursor:pointer!important;
-}
-.beatmapset-info__row>button.kmh111-inspect-entry .btn-circle__content{
-  display:inline-flex!important;align-items:center!important;justify-content:center!important;
-  color:inherit!important;width:100%!important;height:100%!important;
-}
-.beatmapset-info__row>button.kmh111-inspect-entry:hover{background:hsl(var(--hsl-b2))!important}
 /* Do not add a second Download action to the narrow beatmapset Info hero. */
 .beatmapset-header .kmh111-dl-toggle,.beatmapset-header__main .kmh111-dl-toggle,
 .beatmapset-info__content .kmh111-dl-toggle{display:none!important}
@@ -47,6 +30,5 @@
 /* Prevent a dim loading indicator from looking like an active successful upload. */
 .kmh-upload-drop-overlay[hidden]{display:none!important}
 @media (max-width:600px){
- .beatmapset-info__row:has(>button.kmh111-inspect-entry){padding-right:66px!important}
  .kmh-unread-section-label,.kmh-seen-section-label{font-size:10px}
 }
