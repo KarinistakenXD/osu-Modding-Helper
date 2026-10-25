@@ -18,7 +18,8 @@
   "permissions": [
     "storage",
     "identity",
-    "activeTab"
+    "activeTab",
+    "favicon"
   ],
   "host_permissions": [
     "*://osu.ppy.sh/*",
@@ -111,5 +112,15 @@
     "32": "icons/icon-32.png",
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "_favicon/*"
+      ],
+      "matches": [
+        "*://osu.ppy.sh/*"
+      ]
+    }
+  ]
 }

@@ -110,7 +110,6 @@
          const markdown=(response.image&&isImageFile(file))?`![${name}](${response.url})`:`[${name}](${response.url})`;
          if(canReplace)replacePlaceholder(field,token,markdown);else nativeInsert(field,markdown);
          document.dispatchEvent(new CustomEvent('kmh-image-uploaded',{detail:{url:response.url}}));
-         document.querySelector('.kmh-linked-preview')?.removeAttribute('hidden');
          toast(`Uploaded via ${response.provider||'selected host'}; link inserted into editor.`);
        });
      }catch(error){if(canReplace)replacePlaceholder(field,token,'');toast('Upload failed: '+error.message);}

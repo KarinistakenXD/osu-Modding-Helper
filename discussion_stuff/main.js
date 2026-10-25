@@ -2,7 +2,7 @@
 let kmhInjectionTimer;
 let kmhCurrentSet;
 let kmhLastPath = location.pathname;
-const kmhUISelector = '.kmh-editor-actions, .kmh-inline-coach, .kmh-linked-preview, .custom-metadata-block, #custom-beatmap-advanced-stats, #custom-rc-panel, .kmh-markdown-preview, .kmh-mod-workspace, .kmh-workspace-launcher, .kmh-related, .kmh-draft-bar';
+const kmhUISelector = '.kmh-editor-actions, .kmh-inline-coach, .kmh-linked-preview, .kmh-attachments-inline, .custom-metadata-block, #custom-beatmap-advanced-stats, #custom-rc-panel, .kmh-markdown-preview, .kmh-mod-workspace, .kmh-workspace-launcher, .kmh-related, .kmh-draft-bar';
 let kmhOutsideDiscussion = false;
 function runInjections() {
     if (document.hidden) return;
@@ -55,7 +55,7 @@ function resumeInjections() {
     runInjections();
 }
 new MutationObserver(records => {
-    if (records.some(record => !record.target.closest?.('.kmh-editor-actions, .kmh-inline-coach, .custom-metadata-block, #custom-beatmap-advanced-stats, #custom-rc-panel, .kmh-markdown-preview, .kmh-mod-workspace, .kmh-workspace-launcher, .kmh-related, .kmh-draft-bar, .kmh-image-popup, .kmh-inline-mirror, .kmh-md-portal, #mod-helper-settings-modal, .kmh-tour-shade, .kmh-tour-outline, .kmh-tour-bubble, .kmh-linked-preview, .kmh-preview-lightbox, .kmh-reply-tools, #kmh-upload-status-toast'))) scheduleInjections();
+    if (records.some(record => !record.target.closest?.('.kmh-editor-actions, .kmh-inline-coach, .custom-metadata-block, #custom-beatmap-advanced-stats, #custom-rc-panel, .kmh-markdown-preview, .kmh-mod-workspace, .kmh-workspace-launcher, .kmh-related, .kmh-draft-bar, .kmh-image-popup, .kmh-inline-mirror, .kmh-md-portal, #mod-helper-settings-modal, .kmh-tour-shade, .kmh-tour-outline, .kmh-tour-bubble, .kmh-linked-preview, .kmh-attachments-inline, .kmh-attachment-gallery-backdrop, .kmh-preview-lightbox, .kmh-reply-tools, #kmh-upload-status-toast'))) scheduleInjections();
 }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'data-id'] });
 window.addEventListener('popstate', scheduleInjections);
 window.addEventListener('mod-helper-settings-changed', scheduleInjections);

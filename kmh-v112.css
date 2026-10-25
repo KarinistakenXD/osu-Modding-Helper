@@ -416,3 +416,337 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* v1.1.2 attachment hotfix: contextual thumbnail strip, not a toolbar toggle.
+   Only extension-owned elements participate; native textarea/toolbar are unchanged. */
+.kmh-attachments-inline[hidden] {display:none!important;}
+.kmh-attachments-inline {
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  margin:9px 0 10px;
+  padding:9px 10px 11px;
+  border-radius:6px;
+  border:1px solid hsl(var(--hsl-b2,200,10%,30%));
+  background:hsl(var(--hsl-b4,200,10%,20%));
+  font-family:var(--font-default,Torus,Inter,sans-serif);
+}
+.kmh-attachments-inline--reply {margin:8px 0;padding:8px;}
+.kmh-attachment-counter {
+  margin:0 0 8px;
+  color:hsl(var(--hsl-l2,200,40%,75%));
+  font-size:10px;
+  font-weight:600;
+  line-height:1.4;
+}
+.kmh-attachments-grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  max-width:660px;
+  gap:8px;
+  min-width:0;
+  align-items:stretch;
+}
+.kmh-attachment-tile {
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  position:relative;
+  min-width:0;
+  overflow:hidden;
+  border:1px solid hsl(var(--hsl-b2,200,10%,30%));
+  border-radius:6px;
+  background:hsl(var(--hsl-b3,200,10%,25%));
+  color:hsl(var(--hsl-c1,200,30%,95%));
+  text-decoration:none!important;
+  cursor:pointer;
+  padding:0;
+  text-align:left;
+  font:inherit;
+  transition:border-color 120ms, background 120ms;
+}
+.kmh-attachment-tile:hover {border-color:hsl(var(--hsl-h2,200,50%,45%));background:hsl(var(--hsl-b2,200,10%,30%));color:inherit;}
+.kmh-attachment-tile:focus-visible {outline:2px solid hsl(var(--hsl-h1,200,100%,70%));outline-offset:2px;}
+.kmh-attachment-visual {
+  box-sizing:border-box;
+  display:grid;
+  place-items:center;
+  flex:none;
+  width:100%;
+  height:92px;
+  min-width:0;
+  overflow:hidden;
+  background:hsl(var(--hsl-b5,200,10%,15%));
+  color:hsl(var(--hsl-h1,200,100%,70%));
+}
+.kmh-attachment-image {display:block;width:100%;height:100%;object-fit:contain;}
+.kmh-attachment-favicon {display:block;width:40px;height:40px;max-width:75%;max-height:70%;object-fit:contain;}
+.kmh-attachment-favicon-fallback,.kmh-attachment-file-icon {font-size:28px;}
+.kmh-attachment-label {
+  box-sizing:border-box;
+  display:block;
+  width:100%;
+  padding:6px 7px 3px;
+  font-size:11px;
+  font-weight:600;
+  line-height:1.3;
+  color:hsl(var(--hsl-c1,200,30%,95%));
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+.kmh-attachment-host {display:block;width:100%;padding:0 7px 7px;color:hsl(var(--hsl-l2,200,40%,75%));font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kmh-attachment-tile--image .kmh-attachment-label {padding-bottom:7px;}
+.kmh-attachment-tile--overflow .kmh-attachment-visual {height:100%;min-height:121px;opacity:.55;}
+.kmh-attachment-tile--overflow .kmh-attachment-overflow-count {
+  position:absolute;inset:0;
+  display:grid;place-items:center;
+  background:rgba(10,13,18,.40);
+  font-size:26px;
+  font-weight:750;
+  color:white;
+  text-shadow:0 1px 10px #000;
+}
+.kmh-attachment-gallery-backdrop {
+  position:fixed;
+  inset:0;
+  z-index:2147483600;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.76);
+}
+.kmh-attachment-gallery {
+  box-sizing:border-box;
+  width:min(790px,100%);
+  max-height:min(82vh,720px);
+  overflow:auto;
+  border-radius:8px;
+  background:hsl(var(--hsl-b4,200,10%,20%));
+  color:white;
+  box-shadow:0 12px 40px rgba(0,0,0,.5);
+  padding:16px;
+}
+.kmh-attachment-gallery-head {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;font:600 14px var(--font-default,Torus,Inter,sans-serif);}
+.kmh-attachment-gallery-close {flex:none;cursor:pointer;padding:5px 12px;background:hsl(var(--hsl-b3,200,10%,25%));border:1px solid hsl(var(--hsl-b2,200,10%,30%));border-radius:4px;color:white;font-size:18px;}
+.kmh-attachment-gallery-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+.kmh-attachment-gallery-grid .kmh-attachment-visual {height:118px;}
+@media(max-width:540px){
+  .kmh-attachments-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}
+  .kmh-attachment-visual {height:82px;}
+  .kmh-attachment-tile--overflow .kmh-attachment-visual {min-height:111px;}
+  .kmh-attachment-gallery {padding:12px;}
+  .kmh-attachment-gallery-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+}
+@media (prefers-reduced-motion:reduce){.kmh-attachment-tile{transition:none;}}
+
+/* v1.1.2: Preview belongs BELOW the native Markdown/actions toolbar.
+   The action cards are extension-owned; the native editor remains untouched. */
+.beatmap-discussion-new .kmh-attachments-inline:not([hidden]) {
+  margin:12px 0 5px;
+}
+.kmh-attachments-inline {padding:11px 12px 13px;}
+.kmh-attachments-grid {max-width:606px;gap:10px;}
+.kmh-attachment-card {
+  position:relative;
+  min-width:0;
+  min-height:0;
+  display:flex;
+  border-radius:6px;
+}
+.kmh-attachment-card > .kmh-attachment-tile {width:100%;min-width:0;}
+.kmh-attachment-remove {
+  position:absolute;
+  z-index:3;
+  top:5px;right:5px;
+  width:26px;height:26px;
+  display:grid;place-items:center;
+  padding:0;
+  border-radius:5px;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(16,20,26,.92);
+  color:#fff;
+  box-shadow:0 1px 5px rgba(0,0,0,.3);
+  cursor:pointer;
+  font-size:12px;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity 120ms,background-color 120ms,visibility 120ms;
+}
+.kmh-attachment-card:hover > .kmh-attachment-remove,
+.kmh-attachment-card:focus-within > .kmh-attachment-remove {
+  opacity:1;
+  visibility:visible;
+}
+.kmh-attachment-remove:hover {background:hsl(var(--hsl-red-3,355,55%,45%));}
+.kmh-attachment-remove:focus-visible {outline:2px solid hsl(var(--hsl-h1,200,100%,70%));outline-offset:2px;}
+.kmh-attachment-favicon-box {display:grid;place-items:center;width:100%;height:100%;}
+.kmh-attachment-favicon-fallback {
+  display:grid;
+  place-items:center;
+  width:42px;height:42px;
+  border-radius:10px;
+  background:hsl(var(--hsl-b3,200,10%,28%));
+  border:1px solid hsl(var(--hsl-b2,200,10%,40%));
+  color:hsl(var(--hsl-c1,200,30%,95%));
+  font-weight:700;
+  font-size:23px;
+  text-transform:uppercase;
+}
+@media(hover:none), (pointer:coarse){
+  .kmh-attachment-remove {opacity:1;visibility:visible;}
+}
+@media(max-width:540px){
+  .kmh-attachments-grid {gap:8px;}
+  .kmh-attachments-inline {padding:9px;}
+}
+
+/* v1.1.2 hotfix 3: Five complete attachments, plus overflow tile for 6+. */
+.kmh-attachments-grid{grid-template-columns:repeat(6,minmax(0,1fr));max-width:870px;gap:7px}
+.kmh-attachment-visual{height:88px}
+@media(max-width:740px){.kmh-attachments-grid{grid-template-columns:repeat(3,minmax(0,1fr));max-width:100%}}
+@media(max-width:430px){.kmh-attachments-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-width:100%}}
+/* Syntax colours preserve the complete Markdown source and caret indices.
+   Emphasis is styled inside the editor mirror below. */
+.kmh-md-delim{color:#969daf!important;opacity:1}
+.kmh-md-strong-content{color:#fce0ff!important;background:rgba(205,112,238,.20)!important;text-decoration:underline;text-decoration-color:rgba(248,167,253,.6)!important}
+.kmh-md-italic-content{color:#d5c6ff!important;background:rgba(136,117,225,.16)!important}
+.kmh-md-emphasis-content{color:#e1d8fb!important}
+.kmh-md-link-label{color:#71ddff!important;background:transparent!important}
+.kmh-md-bare-url{color:#73d8ff!important;background:transparent!important}
+.kmh-md-timestamp{color:#ffe29b!important;background:rgba(238,164,59,.22)!important}
+.kmh-md-image-alt{color:#c3b7ff!important;background:rgba(167,131,225,.18)!important}
+.kmh-md-strike{color:#eaa3ae!important;background:rgba(203,94,113,.14)!important}
+
+/* v1.1.2 inline Markdown: formatting stays inside the original editor
+   viewport; the separate formatted-preview panel is intentionally retired. */
+.kmh-md-portal .kmh-md-code .kmh-md-strong-content,
+.kmh-md-portal .kmh-md-code .kmh-md-bold-italic { font-weight:700!important; color:#fff0ff!important; }
+.kmh-md-portal .kmh-md-code .kmh-md-italic-content,
+.kmh-md-portal .kmh-md-code .kmh-md-bold-italic { font-style:italic!important; }
+.kmh-md-portal .kmh-md-code .kmh-md-strike { text-decoration:line-through!important; }
+.kmh-md-portal .kmh-md-code .kmh-md-delim { opacity:.56!important; }
+.kmh-md-portal .kmh-md-code a.kmh-md-visit {
+  color:#85ddff!important;text-decoration:underline!important;text-underline-offset:2px;
+  pointer-events:auto!important;cursor:pointer;
+}
+.kmh-md-portal .kmh-md-code a.kmh-md-visit.kmh-md-timestamp {color:#ffe09b!important;}
+.kmh-md-portal.kmh-md-editing .kmh-md-code a.kmh-md-visit {
+  pointer-events:none!important;cursor:text;
+}
+.kmh-md-portal .kmh-md-code a.kmh-md-visit:focus-visible {outline:2px solid #9de1ff;outline-offset:1px;}
+
+.kmh-md-portal .kmh-md-code .kmh-md-strong-content,
+.kmh-md-portal .kmh-md-code .kmh-md-italic-content,
+.kmh-md-portal .kmh-md-code .kmh-md-bold-italic {
+  letter-spacing:var(--kmh-fitted-spacing,inherit)!important;
+}
+
+
+/* 1.1.2 local hover/click enhancement: only hyperlinks intercept input.
+   Never replace the React-controlled textarea or steal selection over plain text. */
+.kmh-md-portal.kmh-md-editing:not(.kmh-md-composing) .kmh-md-code a.kmh-md-visit {
+  pointer-events:auto!important;
+  cursor:pointer!important;
+}
+.kmh-md-portal.kmh-md-composing .kmh-md-code a.kmh-md-visit {pointer-events:none!important;}
+.kmh-md-portal .kmh-md-code a.kmh-md-visit:hover {
+  background:transparent!important;
+  text-shadow:0 0 7px rgba(119,218,255,.35)!important;
+}
+.kmh-md-portal .kmh-md-code a.kmh-md-timestamp:hover {
+  background:transparent!important;
+  text-shadow:0 0 7px rgba(250,213,139,.4)!important;
+}
+.kmh-md-destination{
+  position:fixed!important;z-index:610!important;pointer-events:none!important;
+  max-width:min(380px,calc(100vw - 16px));min-width:125px;
+  padding:7px 10px;border-radius:5px;border:1px solid hsl(var(--hsl-b2));
+  background:hsl(var(--hsl-b5));color:hsl(var(--hsl-c1));
+  box-shadow:0 5px 18px rgba(0,0,0,.4);font:11px/1.45 Torus,Inter,sans-serif;
+  overflow-wrap:anywhere;
+}
+.kmh-md-destination[hidden]{display:none!important}
+.kmh-md-destination-label{display:block;color:hsl(var(--hsl-l1));font-weight:700;margin-bottom:2px}
+.kmh-md-destination-url{display:block;color:#92dffb;max-height:3.3em;overflow:hidden}
+
+/* Use osu!web native button geometry; glow only on genuinely enabled post actions. */
+.beatmap-discussion-new__footer [data-type]:not(:disabled):not(.btn-osu-big--disabled):not([aria-disabled="true"]){
+  transition:background-color 120ms,box-shadow 120ms,filter 120ms!important;
+}
+.beatmap-discussion-new__footer [data-type="praise"]:not(:disabled):not(.btn-osu-big--disabled):not([aria-disabled="true"]):is(:hover,:focus-visible){
+  filter:brightness(1.12)!important;
+  box-shadow:0 0 0 1px hsla(var(--hsl-blue-2),.8),0 0 13px 2px hsla(var(--hsl-blue-2),.52)!important;
+}
+.beatmap-discussion-new__footer [data-type="suggestion"]:not(:disabled):not(.btn-osu-big--disabled):not([aria-disabled="true"]):is(:hover,:focus-visible){
+  filter:brightness(1.12)!important;
+  box-shadow:0 0 0 1px hsla(var(--hsl-orange-2),.8),0 0 13px 2px hsla(var(--hsl-orange-2),.52)!important;
+}
+.beatmap-discussion-new__footer [data-type="problem"]:not(:disabled):not(.btn-osu-big--disabled):not([aria-disabled="true"]):is(:hover,:focus-visible){
+  filter:brightness(1.12)!important;
+  box-shadow:0 0 0 1px hsla(var(--hsl-red-2),.8),0 0 13px 2px hsla(var(--hsl-red-2),.52)!important;
+}
+.beatmap-discussion-new__footer [data-type="mapper_note"]:not(:disabled):not(.btn-osu-big--disabled):not([aria-disabled="true"]):is(:hover,:focus-visible){
+  filter:brightness(1.12)!important;
+  box-shadow:0 0 0 1px hsla(var(--hsl-purple-2),.8),0 0 13px 2px hsla(var(--hsl-purple-2),.52)!important;
+}
+@media(prefers-reduced-motion:reduce){.beatmap-discussion-new__footer [data-type]{transition:none!important}}
+
+/* v1.1.2 editor polish: normal prose follows native textarea's computed text
+   colour. Markdown tokens remain distinct, without tinting unmarked content.
+   Preserve glyph metrics: never change padding, line-height or font-family. */
+.kmh-md-portal .kmh-md-code .kmh-md-code-content {
+  color: #e4d9c3!important;
+  background: rgba(0,0,0,.16)!important;
+  border-radius: 2px;
+  box-shadow: none!important;
+}
+.kmh-md-portal .kmh-md-code .kmh-md-fenced-content {
+  color: #d9e0e5!important;
+  background: rgba(0,0,0,.16)!important;
+  box-shadow: none!important;
+}
+.kmh-md-portal .kmh-md-code .kmh-md-fence-marker {
+  color: #b9ad91!important;
+  background: transparent!important;
+}
+.kmh-md-portal .kmh-md-code .kmh-md-code-language {
+  color: #aebdca!important;
+  background: transparent!important;
+}
+
+
+/* v1.1.2 plain-text hotfix: never decorate unmarked source characters.
+   The mirror is visual only; these spans preserve the native text and offsets. */
+.kmh-md-portal .kmh-md-code .kmh-md-plain-text {
+  color: inherit !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+/* The legacy transparent textarea used a forced translucent BLUE selection.
+   Keep active text selection visible, but neutral and unobtrusive. */
+textarea.kmh-md-original-transparent::selection {
+  background: rgba(215, 220, 225, .33) !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* v1.1.2 hotfix 7: no stray translucent blue boxes in the draft mirror.
+   Legacy CSS from earlier versions is still loaded ahead of this file. */
+.kmh-md-portal .kmh-md-code :is(.kmh-md-plain-text,.kmh-md-bare-url,.kmh-md-link-label,.kmh-md-link-url,.kmh-md-image-url,.kmh-md-delim,.kmh-md-fence-marker,.kmh-md-code-language) {
+  background:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}

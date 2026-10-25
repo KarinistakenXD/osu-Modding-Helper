@@ -57,8 +57,8 @@
         image.onerror=()=>{thumb.replaceChildren(make('span',null,'Image unavailable'));};
         thumb.append(image);
       }else{
-        const ico=make('img');ico.alt='';ico.referrerPolicy='no-referrer';ico.src=item.origin+'/favicon.ico';ico.onerror=()=>ico.replaceWith(make('span',null,'↗'));
-        thumb.append(ico);
+        const ico=make('img');ico.alt='';ico.referrerPolicy='no-referrer';if(window.KmhLinkPreview?.createFavicon){thumb.append(window.KmhLinkPreview.createFavicon(item));}
+        else {ico.src=item.origin+'/favicon.ico';ico.onerror=()=>ico.replaceWith(make('span',null,'↗'));thumb.append(ico);}
       }
       const name=make('strong',null,item.label);const a=make('a',null,'Open ↗');a.href=item.href;a.target='_blank';a.rel='noopener noreferrer';
       card.append(thumb,name,a);grid.append(card);
