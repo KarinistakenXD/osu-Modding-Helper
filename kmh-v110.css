@@ -20,3 +20,11 @@
 .kmh-review-link-thumb{width:36px;height:36px;display:grid;place-items:center;flex-shrink:0;background:hsl(var(--hsl-b6,200,10%,10%));border-radius:3px;font-size:9px;overflow:hidden}
 .kmh-review-link-thumb img{max-width:100%;max-height:100%;object-fit:contain}
 @media(max-width:500px){.kmh-history-control{min-width:92px}.kmh-review-helper{padding:7px 9px}.kmh-review-actions{gap:4px}.kmh-review-actions button{padding:5px 6px}}
+
+/* Review safety hotfix: compact floating read-only tools are portaled to body.
+   No extension-controlled nodes belong inside React/Slate's managed subtree. */
+.kmh-review-portal { position:fixed; z-index:10015; width:min(530px,calc(100vw - 16px)); max-height:calc(100vh - 16px); box-shadow:0 8px 26px #0008; border-radius:5px; overflow:auto; }
+.kmh-review-portal[hidden] {display:none!important;}
+.kmh-review-portal .kmh-review-helper { border:1px solid hsl(var(--hsl-b2,200,10%,30%)); border-radius:5px; padding:8px 12px; }
+.kmh-review-portal .kmh-review-actions strong {display:block;}
+@media(max-width:500px){.kmh-review-portal .kmh-review-helper{padding:7px;} .kmh-review-portal .kmh-review-actions button{font-size:10px;padding:5px;}}

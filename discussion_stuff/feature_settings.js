@@ -4,7 +4,7 @@ const MOD_HELPER_DEFAULT_SETTINGS = {
     discussionDownload: true,
     headerMetadata: true,
     modWorkspace: true,
-    draftRecovery: true
+    draftRecovery: false
 };
 
 window.modHelperSettings = { ...MOD_HELPER_DEFAULT_SETTINGS };
@@ -64,6 +64,7 @@ function setupOsuAuthListeners(connectBtn, host = document) {
         const expired = !!(status && status.expired);
         const refreshable = !!(status && status.refreshable);
         isConnected = connected;
+        connectBtn.dataset.kmhAction = connected ? 'disconnect' : 'connect';
 
         busy(false);
 

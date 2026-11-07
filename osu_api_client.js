@@ -123,9 +123,15 @@ if (typeof self.OsuAuthManager === 'undefined') {
         if (filters.only_unresolved === true) params.only_unresolved = true;
         return cachedFetch('/beatmapsets/discussions', params);
     }
-    async function fetchDiscussionPosts(discussionId, cursor) {
-        return cachedFetch('/beatmapsets/discussions/posts', { beatmapset_discussion_id: positiveId(discussionId), 'types[]': ['first', 'reply', 'system'], limit: 50, sort: 'id_asc', cursor_string: cursor || undefined });
+    async function fetchDiscussionPosts(discussionId, cursor, limit = 50, sort = 'id_asc') {
+        const pageLimit = Number(limit);
+        return cachedFetch('/beatmapsets/discussions/posts', { beatmapset_discussion_id: positiveId(discussionId), 'types[]': ['first', 'reply', 'system'], limit: Number.isSafeInteger(pageLimit) && pageLimit >= 1 && pageLimit <= 50 ? pageLimit : 50, sort: sort === 'id_desc' ? 'id_desc' : 'id_asc', cursor_string: cursor || undefined });
     }
+    async function fetchKudosuHistory(userId) { return cachedFetch(`/users/${positiveId(userId)}/kudosu`,{limit:20}); }
+    async function fetchNominatedSets(userId) { return cachedFetch(`/users/${positiveId(userId)}/beatmapsets/nominated`,{limit:30}); }
+    // Public global beatmapset-event feed. Caller MUST scope returned events to the account or known mapsets.
+    async function fetchBeatmapsetEvents(userId) { return cachedFetch('/beatmapsets/events', { user: positiveId(userId), sort: 'id_desc' }); }
+    async function fetchBeatmapsetEventsForSet(setId){return cachedFetch('/beatmapsets/events',{beatmapset_id:positiveId(setId),type:'disqualify',sort:'id_desc'});}
     async function fetchFavourites(page = 1) { return cachedFetch('/me/beatmapset-favourites', { page: positiveId(page) }); }
 
     self.OsuApiClient = {
@@ -134,6 +140,10 @@ if (typeof self.OsuAuthManager === 'undefined') {
         fetchDiscussions,
         fetchDiscussionPosts,
         fetchFavourites,
+        fetchKudosuHistory,
+        fetchNominatedSets,
+        fetchBeatmapsetEvents,
+        fetchBeatmapsetEventsForSet,
         fetchPublicUser,
         clearCache() { cacheEpoch++; cache.clear(); inFlight.clear(); rateLimitedUntil = 0; }
     };

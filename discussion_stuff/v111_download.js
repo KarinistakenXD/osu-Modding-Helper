@@ -55,7 +55,9 @@
   const trigger=$('button','kmh111-dl-toggle');trigger.type='button';trigger.setAttribute('aria-expanded','false');trigger.setAttribute('aria-controls','kmh111-download-popover');trigger.setAttribute('title','More download and export options');trigger.setAttribute('aria-label','More download and export options');trigger.innerHTML='<span class="fas fa-plus" aria-hidden="true"></span>';
   wrap.id='kmh111-download-popover';wrap.dataset.kmhSetId=String(set.id);
   trigger.onclick=()=>window.Kmh111Popover?.show?.(trigger,wrap,{preferred:'side'});
-  downloadButton?.insertAdjacentElement('afterend',trigger);
+  // Keep Download | osu!direct | + even if both injectors run in either order.
+  const direct=downloadButton?.nextElementSibling?.matches?.('.kmh-osu-direct-btn') ? downloadButton.nextElementSibling : null;
+  (direct || downloadButton)?.insertAdjacentElement('afterend',trigger);
   if(downloadButton?.classList.contains('custom-download-btn'))downloadButton.parentElement.classList.add('kmh111-has-download-toggle');
   return {wrap,trigger};
  }

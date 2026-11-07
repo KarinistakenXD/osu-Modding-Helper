@@ -322,40 +322,9 @@
       if(!parent)return;
       const host=field.closest('.beatmap-discussion-post__message-container')||field.parentElement;
       if(!host)return;
-      let row=host.querySelector(':scope > .kmh-reply-tools');
-      if(!row){row=make('div','kmh-reply-tools');host.append(row);}
-      row.querySelector('.kmh-reply-preview-btn')?.remove();
+      // No extra reply toolbar is needed: attachment previews render inline.
+      host.querySelector(':scope > .kmh-reply-tools')?.remove();
       create(field,host,true);
-      if(row._coachField!==field){
-        row._coachAbort?.abort();row._coachField=field;
-        const out=row.querySelector('.kmh-reply-coach-results');
-        if(out){out.remove();row.querySelector('.kmh-reply-coach-btn')?.setAttribute('aria-expanded','false');}
-      }
-      if(!row.querySelector('.kmh-reply-coach-btn')){
-        const coach=make('button','kmh-reply-coach-btn','✓ Coach');
-        coach.type='button';coach.title='Check the current reply text against Road to BN writing principles';
-        coach.addEventListener('click',()=>{
-          let out=row.querySelector('.kmh-reply-coach-results');
-          if(out){row._coachAbort?.abort();clearTimeout(out._timer);out.remove();coach.setAttribute('aria-expanded','false');return;}
-          out=make('div','kmh-reply-coach-results');out.setAttribute('role','status');
-          row.append(out);coach.setAttribute('aria-expanded','true');
-          row._coachAbort?.abort();row._coachAbort=new AbortController();
-          const update=()=>{
-            if(!out.isConnected)return;
-            const result=window.KmhCoachCore?.analyze?.(content(row._coachField),{postType:'reply'});
-            out.replaceChildren();
-            if(!result){out.textContent='Coach unavailable.';return;}
-            out.append(make('strong',null,`${result.covered}/${result.total} reasoning elements · ${result.wordCount} words`));
-            const list=make('ul');
-            result.notes.slice(0,4).forEach(x=>list.append(make('li',null,x.title+': '+x.detail)));
-            if(!list.childElementCount)list.append(make('li',null,'No obvious writing omissions found. Verify map context yourself.'));
-            out.append(list);
-          };
-          update();
-          row._coachField?.addEventListener('input',()=>{clearTimeout(out._timer);out._timer=setTimeout(update,900);},{signal:row._coachAbort.signal});
-        });
-        row.append(coach);
-      }
     });
   }
   // Older consumers of the preview API open the full collection instead of a floating toggle.

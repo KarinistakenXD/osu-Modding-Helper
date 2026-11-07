@@ -40,6 +40,29 @@
     if(u.protocol!=='https:'||u.username||u.password||!allowedHosts.some(h=>u.hostname===h||u.hostname.endsWith('.'+h)))throw Error('Provider returned an unexpected URL');
     return u.href;
   }
+  // Provider API acknowledgement is not a guarantee that the CDN is reachable.
+  // Do not retry an uncertain request on another host: it might upload twice.
+  const NETWORK_TIMEOUT_MS = 27000;
+  function explainNetworkError(error,id,timedOut){
+    const label=PROVIDERS[id].label;
+    if(timedOut || error?.name==='TimeoutError' || error?.name==='AbortError')
+      return Object.assign(new Error(`${label} did not respond within 27 seconds. Check the host before retrying; the file may already have been uploaded.`),{code:'UPLOAD_TIMEOUT',provider:id});
+    if(error instanceof TypeError)
+      return Object.assign(new Error(`${label} could not be reached. Check your connection, content blockers and host status.`),{code:'UPLOAD_NETWORK',provider:id});
+    return error;
+  }
+  async function responseError(response,id){
+    let detail='';
+    try {
+      const body=(await response.text()).trim().slice(0,300);
+      if(body.startsWith('{')){
+        const data=JSON.parse(body);
+        detail=asText(data?.error?.message||data?.error||data?.message).slice(0,180);
+      }else if(!body.startsWith('<'))detail=body.slice(0,180);
+    }catch{}
+    const hint=detail ? `: ${detail}` : '';
+    return Object.assign(new Error(`${PROVIDERS[id].label} rejected the upload (HTTP ${response.status})${hint}`),{code:'UPLOAD_HTTP',provider:id,status:response.status});
+  }
   async function send(id,file,conf){
     const check=compatible(id,file,conf);if(!check.ok)throw Error(check.reason);
     const form=new FormData();let endpoint,parse;
@@ -56,17 +79,32 @@
     }else if(id==='imgbb'){
       endpoint='https://api.imgbb.com/1/upload?key='+encodeURIComponent(asText(conf.imgbbApiKey));
       form.append('image',file.blob,file.name);
-      parse=async r=>{const json=await r.json();if(!json.success||!json.data?.url)throw Error('ImgBB rejected this upload');return normalizeUrl(json.data.image?.url||json.data.url,['i.ibb.co']);};
+      parse=async r=>{
+        const json=await r.json();
+        if(!json.success||!json.data?.url){
+          const message=asText(json?.error?.message||json?.error||'Image host rejected the image').slice(0,180);
+          throw new Error(`ImgBB: ${message}`);
+        }
+        // Direct image, never the imgbb.com viewer page.
+        return normalizeUrl(json.data.image?.url||json.data.url,['i.ibb.co']);
+      };
     }else if(id==='sul'){
       const u=new URL('https://s-ul.eu/api/v1/upload');u.searchParams.set('wizard','true');u.searchParams.set('key',asText(conf.sulApiKey));endpoint=u.toString();
       form.append('file',file.blob,file.name);
       parse=async r=>{const json=await r.json();if(!json.url)throw Error('s-ul.eu returned no file URL');return normalizeUrl(json.url,['s-ul.eu']);};
     }
-    // Any failure after network dispatch is terminal: do NOT silently reupload.
-    const response=await fetch(endpoint,{method:'POST',body:form,credentials:'omit',redirect:'error',signal:AbortSignal.timeout(45000)});
-    if(!response.ok)throw Object.assign(new Error(`${PROVIDERS[id].label} returned HTTP ${response.status}`),{status:response.status});
-    const url=await parse(response);
-    return {url,provider:id,image:isWebImage(file),temporary:PROVIDERS[id].temporary};
+    const controller=new AbortController();
+    let timedOut=false;
+    const timer=setTimeout(()=>{timedOut=true;controller.abort();},NETWORK_TIMEOUT_MS);
+    try{
+      let response;
+      try{
+        response=await fetch(endpoint,{method:'POST',body:form,credentials:'omit',redirect:'error',signal:controller.signal});
+      }catch(error){throw explainNetworkError(error,id,timedOut);}
+      if(!response.ok)throw await responseError(response,id);
+      const url=await parse(response);
+      return {url,provider:id,image:isWebImage(file),temporary:PROVIDERS[id].temporary};
+    }finally{clearTimeout(timer);}
   }
   async function upload(req){
     const stored=await chrome.storage.local.get(keys);const conf={...stored};

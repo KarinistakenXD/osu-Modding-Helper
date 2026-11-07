@@ -25,74 +25,65 @@ async function injectMetadataBox() {
 
 
     const spinner = '<i class="fas fa-spinner fa-spin"></i>';
-
-    // Inject the box with everything set to a spinner initially, AND disabled copy buttons!
+    const copyButton = (id, cls, label) => `<button type="button" class="custom-tags-code kmh-copy-value ${cls}" id="${id}" title="${label}" aria-label="${label}" data-kmh-copy-state=""><span class="kmh-copy-value-text">${spinner}</span></button>`;
     metaBlock.innerHTML = `
         <div class="kmh-metadata-layout">
             <div class="kmh-metadata-details">
-                <div class="custom-metadata-line"><strong>Source:</strong> <code class="custom-tags-code kmh-source-value" id="custom-source-loader">${spinner}</code><button type="button" class="btn-osu-big kmh-metadata-copy custom-copy-button custom-copy-button--source btn-osu-big--disabled" id="copy-source-genre" title="Copy source and genre" aria-label="Copy source and genre" disabled><span class="kmh-copy-label">Copy</span><i class="fas fa-copy" aria-hidden="true"></i></button></div>
-                <div class="custom-metadata-line"><strong>Genre:</strong> <code class="custom-tags-code kmh-genre-value" id="custom-genre-loader">${spinner}</code><span class="custom-metadata-separator">/</span><code class="custom-tags-code kmh-genre-value" id="custom-language-loader">${spinner}</code><span class="kmh-meta-status" role="status" aria-live="polite" aria-atomic="true"></span></div>
+                <div class="custom-metadata-line"><strong>Source:</strong> ${copyButton('custom-source-loader','kmh-source-value','Copy source')}</div>
+                <div class="custom-metadata-line"><strong>Genre:</strong> <button type="button" class="kmh-copy-value kmh-copy-pair" id="kmh-copy-genre-language" title="Copy genre and language" aria-label="Copy genre and language"><span class="custom-tags-code kmh-genre-value" id="custom-genre-loader">${spinner}</span><span class="custom-metadata-separator" aria-hidden="true">/</span><span class="custom-tags-code kmh-genre-value" id="custom-language-loader">${spinner}</span></button></div>
+                <span class="kmh-meta-status" role="status" aria-live="polite"></span>
+                <span class="kmh-meta-copy-feedback" role="status" aria-live="polite"></span>
             </div>
-
             <div class="kmh-metadata-tags">
                 <div class="kmh-tags-content">
-                    <div class="kmh-tags-line"><strong>Tags:</strong> <code class="custom-tags-code kmh-tags-value" id="custom-tags-loader">${spinner}</code></div><button type="button" class="btn-osu-big kmh-metadata-copy custom-copy-button btn-osu-big--disabled" id="copy-tags" title="Copy tags" aria-label="Copy tags" disabled><span class="kmh-copy-label">Copy</span><i class="fas fa-copy" aria-hidden="true"></i></button>
+                    <div class="kmh-tags-line"><strong>Tags:</strong> ${copyButton('custom-tags-loader','kmh-tags-value','Copy tags')}</div>
                 </div>
             </div>
-        </div>
-    `;
-
+        </div>`;
     filterToolbar.parentNode.insertBefore(metaBlock, filterToolbar);
 
-    async function copyMeta(text, trigger) {
-        const label = trigger.querySelector('.kmh-copy-label');
+    const feedback = metaBlock.querySelector('.kmh-meta-copy-feedback');
+    async function copyMeta(text, trigger, name) {
+        if (!text) return;
         try {
             await navigator.clipboard.writeText(text);
-            if (label) label.textContent = 'Copied';
-            setTimeout(() => { if (label?.isConnected) label.textContent = 'Copy'; }, 1200);
-        } catch { if (label) label.textContent = 'Failed'; }
+            if (feedback) feedback.textContent = `${name} copied`;
+            trigger.dataset.kmhCopyState = 'copied';
+            setTimeout(() => { if (trigger.isConnected) { trigger.dataset.kmhCopyState = ''; if (feedback) feedback.textContent = ''; } }, 1250);
+        } catch {
+            if (feedback) feedback.textContent = 'Clipboard unavailable. Select and copy the text.';
+            window.prompt?.(`Copy ${name.toLowerCase()} (Ctrl+C)`, text);
+        }
     }
-
-    // Render metadata immediately from the public beatmapset JSON, then supplement via API.
-    function unlockMetadataUI(genre, lang, complete = true) {
-        const sourceSpan = metaBlock.querySelector('#custom-source-loader');
-        const tagsSpan = metaBlock.querySelector('#custom-tags-loader');
+    function nativeMeta(name) {
+        const entry = [...document.querySelectorAll('.beatmapset-info__half-entry')]
+            .find(element => element.querySelector('.beatmapset-info__header')?.textContent?.trim().toLowerCase() === name.toLowerCase());
+        return entry?.querySelector('.beatmapset-info__link')?.textContent?.trim() || '';
+    }
+    function unlockMetadataUI(genre, lang) {
+        const sourceSpan = metaBlock.querySelector('#custom-source-loader .kmh-copy-value-text');
+        const tagsSpan = metaBlock.querySelector('#custom-tags-loader .kmh-copy-value-text');
         const genreSpan = metaBlock.querySelector('#custom-genre-loader');
         const languageSpan = metaBlock.querySelector('#custom-language-loader');
-        
-        if (sourceSpan) { sourceSpan.textContent = source; sourceSpan.title = source; }
+        const genreValue = genre && genre !== '—' ? genre : nativeMeta('Genre') || 'Unavailable';
+        const languageValue = lang && lang !== '—' ? lang : nativeMeta('Language') || 'Unavailable';
+        if (sourceSpan) sourceSpan.textContent = source;
         if (tagsSpan) tagsSpan.textContent = tags;
-        if (genreSpan) genreSpan.textContent = genre;
-        if (languageSpan) languageSpan.textContent = lang;
-
-        // Unlock the Left Copy Button
-        const leftCopyBtn = metaBlock.querySelector('#copy-source-genre');
-        if (leftCopyBtn) {
-            leftCopyBtn.disabled = !complete;
-            leftCopyBtn.classList.toggle('btn-osu-big--disabled', !complete);
-            leftCopyBtn.onclick = () => {
-                const payload = `Source: ${source}\nGenre: ${genre}\nLanguage:${lang || 'none'}`;
-                copyMeta(payload, leftCopyBtn);
-            };
-        }
-
-        // Unlock the Right Copy Button
-        const rightCopyBtn = metaBlock.querySelector('#copy-tags');
-        if (rightCopyBtn) {
-            rightCopyBtn.disabled = false;
-            rightCopyBtn.classList.remove('btn-osu-big--disabled');
-            rightCopyBtn.onclick = () => {
-                copyMeta(tags, rightCopyBtn);
-            };
-        }
-
-        // Inject the HP and OD stats row
+        if (genreSpan) genreSpan.textContent = genreValue;
+        if (languageSpan) languageSpan.textContent = languageValue;
+        // Each metadata code surface is its own copy target; none requires OAuth.
+        const sourceButton = metaBlock.querySelector('#custom-source-loader');
+        const tagsButton = metaBlock.querySelector('#custom-tags-loader');
+        const pairButton = metaBlock.querySelector('#kmh-copy-genre-language');
+        if (sourceButton) sourceButton.onclick = () => copyMeta(source, sourceButton, 'Source');
+        if (tagsButton) tagsButton.onclick = () => copyMeta(tags, tagsButton, 'Tags');
+        if (pairButton) pairButton.onclick = () => copyMeta(`Genre: ${genreValue}\nLanguage: ${languageValue}`, pairButton, 'Genre and language');
         updateSelectedBeatmapStats();
     }
 
     // --- API V2 FETCH ---
-    const genreFromPage = mapData.genre?.name;
-    const langFromPage = mapData.language?.name;
+    const genreFromPage = mapData.genre?.name || nativeMeta('Genre');
+    const langFromPage = mapData.language?.name || nativeMeta('Language');
     const statusEl = metaBlock.querySelector('.kmh-meta-status');
     function clearStatus() {
         if (!statusEl) return;

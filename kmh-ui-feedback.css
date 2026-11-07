@@ -1,0 +1,171 @@
+/* v1.1.3 — shared extension-owned interaction feedback.
+   Selected controls retain a subtle semantic highlight; ordinary actions
+   highlight only on hover/focus. Do not style native osu!web components. */
+:where(.kmh-workspace-overlay,#mod-helper-settings-modal,.kmh-review-workspace,#custom-rc-panel){
+  --kmh-ui-blue:#61c4f3;
+  --kmh-ui-green:#8edb7e;
+  --kmh-ui-yellow:#ebc65b;
+  --kmh-ui-red:#f16c74;
+  --kmh-ui-purple:#c79bff;
+}
+.kmh-workspace-overlay .kmh-thumbs-down-svg{
+  width:19px;height:19px;display:block;overflow:visible;fill:currentColor;
+  flex:none;transform:none;filter:none;
+}
+.kmh-workspace-overlay .kmh-event-card[data-event-type="disqualify"] .kmh-event-symbol{
+  color:var(--kmh-ui-red)!important;
+  background:transparent!important;
+}
+.kmh-workspace-overlay .kmh-event-card[data-event-type="disqualify"] .kmh-event-accent{
+  background-color:var(--kmh-ui-red)!important;
+}
+/* Settings category tabs retain selection; Integrations has a distinct hue. */
+#mod-helper-settings-modal .kmh-settings-tab{
+  --kmh-tint:var(--kmh-ui-blue);transition:background .14s,box-shadow .14s,color .14s,border-color .14s;
+}
+#mod-helper-settings-modal .kmh-settings-tab[data-settings-tab="integrations"]{--kmh-tint:var(--kmh-ui-purple)}
+#mod-helper-settings-modal .kmh-settings-tab:hover,
+#mod-helper-settings-modal .kmh-settings-tab:focus-visible{
+  background:color-mix(in srgb,var(--kmh-tint) 11%,hsl(var(--hsl-b4,200,10%,20%)))!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--kmh-tint) 32%,transparent),
+             0 0 11px color-mix(in srgb,var(--kmh-tint) 14%,transparent)!important;
+}
+#mod-helper-settings-modal .kmh-settings-tab.is-active{
+  border-color:var(--kmh-tint)!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--kmh-tint) 33%,transparent),
+             0 0 11px color-mix(in srgb,var(--kmh-tint) 13%,transparent)!important;
+}
+/* Every feature switch gets a restrained individual accent. Disabled switches
+   deliberately have no persistent glow. */
+#mod-helper-settings-modal .kmh-feature-row{--kmh-tint:var(--kmh-ui-blue);transition:background .14s,box-shadow .14s}
+#mod-helper-settings-modal .kmh-feature-row:has([data-feature="modWorkspace"]){--kmh-tint:var(--kmh-ui-purple)}
+#mod-helper-settings-modal .kmh-feature-row:has([data-feature="rcBook"]){--kmh-tint:var(--kmh-ui-yellow)}
+#mod-helper-settings-modal .kmh-feature-row:has([data-feature="discussionDownload"]){--kmh-tint:var(--kmh-ui-blue)}
+#mod-helper-settings-modal .kmh-feature-row:has([data-feature="headerMetadata"]){--kmh-tint:#8acbc7}
+#mod-helper-settings-modal .kmh-feature-row:has([data-feature="imageUploader"]){--kmh-tint:var(--kmh-ui-purple)}
+#mod-helper-settings-modal .kmh-feature-row:has(>input:checked){
+  background:color-mix(in srgb,var(--kmh-tint) 7%,hsl(var(--hsl-b4,200,10%,20%)))!important;
+  box-shadow:inset 3px 0 0 color-mix(in srgb,var(--kmh-tint) 70%,transparent),
+             inset 0 0 0 1px color-mix(in srgb,var(--kmh-tint) 14%,transparent)!important;
+}
+#mod-helper-settings-modal .kmh-feature-row:hover,
+#mod-helper-settings-modal .kmh-feature-row:has(>input:focus-visible){
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--kmh-tint) 45%,transparent),
+             0 0 10px color-mix(in srgb,var(--kmh-tint) 15%,transparent)!important;
+}
+#mod-helper-settings-modal .kmh-feature-row>input:checked+.kmh-switch{background:var(--kmh-tint)!important}
+/* A save is constructive, cancel is neutral, and disconnect/close are destructive. */
+#mod-helper-settings-modal :is(#modal-settings-save,.kmh-settings-close,#mod-helper-osu-connect,.kmh-settings-cancel),
+#custom-rc-panel :is(.kmh-rc-drawer__close,[data-kmh-rc-external]){
+  --kmh-tint:var(--kmh-ui-blue);transition:box-shadow .14s,background .14s,color .14s;
+}
+#mod-helper-settings-modal #modal-settings-save{--kmh-tint:var(--kmh-ui-green)}
+#mod-helper-settings-modal .kmh-settings-close,
+#mod-helper-settings-modal #mod-helper-osu-connect[data-kmh-action="disconnect"],
+#custom-rc-panel .kmh-rc-drawer__close{--kmh-tint:var(--kmh-ui-red)}
+#mod-helper-settings-modal .kmh-settings-cancel{--kmh-tint:#9bacb8}
+#mod-helper-settings-modal :is(#modal-settings-save,.kmh-settings-close,#mod-helper-osu-connect,.kmh-settings-cancel):is(:hover,:focus-visible):not(:disabled),
+#custom-rc-panel :is(.kmh-rc-drawer__close,[data-kmh-rc-external]):is(:hover,:focus-visible){
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--kmh-tint) 50%,transparent),
+             0 0 12px color-mix(in srgb,var(--kmh-tint) 22%,transparent)!important;
+}
+#mod-helper-settings-modal #mod-helper-osu-connect[data-kmh-action="disconnect"]:hover:not(:disabled),
+#mod-helper-settings-modal .kmh-settings-close:hover,
+#custom-rc-panel .kmh-rc-drawer__close:hover{
+  background:color-mix(in srgb,var(--kmh-ui-red) 14%,hsl(var(--hsl-b4,200,10%,20%)))!important;
+  color:#ffdce0!important;
+}
+/* Review: no access to or styling of Slate. Only the uploader/companion panel. */
+.kmh-review-workspace :is(button,.kmh-review-workspace-auto){
+  --kmh-tint:var(--kmh-ui-blue);
+  transition:box-shadow .14s,background .14s,border-color .14s,color .14s;
+}
+.kmh-review-workspace .kmh-review-workspace-icon{--kmh-tint:var(--kmh-ui-purple)}
+.kmh-review-workspace :is(.kmh-review-workspace-remove,.kmh-review-workspace-action--subtle){--kmh-tint:var(--kmh-ui-red)}
+.kmh-review-workspace .kmh-review-workspace-auto{--kmh-tint:var(--kmh-ui-green)}
+.kmh-review-workspace :is(.kmh-review-workspace-source-copy,.kmh-review-workspace-mini){--kmh-tint:var(--kmh-ui-green)}
+.kmh-review-workspace .kmh-review-workspace-toggle[aria-expanded="true"],
+.kmh-review-workspace .kmh-review-workspace-overflow[aria-expanded="true"],
+.kmh-review-workspace .kmh-review-workspace-auto:has(input:checked){
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--kmh-tint) 45%,transparent),
+             0 0 11px color-mix(in srgb,var(--kmh-tint) 17%,transparent)!important;
+}
+.kmh-review-workspace :is(button,.kmh-review-workspace-auto):is(:hover,:focus-visible,:focus-within):not(:disabled){
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--kmh-tint) 45%,transparent),
+             0 0 10px color-mix(in srgb,var(--kmh-tint) 20%,transparent)!important;
+}
+.kmh-review-workspace :is(button,.kmh-review-workspace-auto):disabled{opacity:.5;box-shadow:none!important}
+.kmh-review-workspace :is(.kmh-review-workspace-remove,.kmh-review-workspace-action--subtle):hover:not(:disabled){
+  color:#ffadb7!important;
+  background:color-mix(in srgb,var(--kmh-ui-red) 14%,hsl(var(--hsl-b4,200,10%,20%)))!important;
+}
+.kmh-review-workspace .kmh-review-workspace-drop:is(:hover,:focus-visible),
+.kmh-review-workspace.is-dragging .kmh-review-workspace-drop{
+  border-color:var(--kmh-ui-blue)!important;
+  background:color-mix(in srgb,var(--kmh-ui-blue) 10%,hsl(var(--hsl-b4,200,10%,20%)))!important;
+}
+/* Consistent keyboard focus for our own panels. Nothing applies to native osu! UI. */
+:is(.kmh-workspace-overlay,#mod-helper-settings-modal,.kmh-review-workspace,#custom-rc-panel)
+  :is(button,a[href],input,select,textarea):focus-visible{
+  outline:2px solid var(--kmh-ui-blue)!important;outline-offset:2px!important;
+}
+@media(prefers-reduced-motion:reduce){
+  :is(.kmh-workspace-overlay,#mod-helper-settings-modal,.kmh-review-workspace,#custom-rc-panel)
+    :is(button,a,label){transition:none!important}
+}
+
+/* Keep primary action affordances legible even when native osu! button styles
+   load later or use a contrasting inherited text color. */
+#mod-helper-settings-modal #modal-settings-save{
+  background:color-mix(in srgb,var(--kmh-ui-green) 78%,#182720)!important;
+  color:#13251c!important;
+  border:1px solid color-mix(in srgb,var(--kmh-ui-green) 60%,transparent)!important;
+}
+#mod-helper-settings-modal #modal-settings-save:is(:hover,:focus-visible):not(:disabled){
+  filter:brightness(1.1);
+  background:var(--kmh-ui-green)!important;
+}
+#mod-helper-settings-modal .kmh-auth-native-button[data-kmh-action="disconnect"]{
+  background:color-mix(in srgb,var(--kmh-ui-red) 20%,#273137)!important;
+  color:#ffe8ed!important;
+  border:1px solid color-mix(in srgb,var(--kmh-ui-red) 48%,transparent)!important;
+}
+#mod-helper-settings-modal .kmh-auth-native-button[data-kmh-action="connect"]{
+  background:color-mix(in srgb,var(--kmh-ui-blue) 65%,#273137)!important;
+  color:#092734!important;
+  border:1px solid color-mix(in srgb,var(--kmh-ui-blue) 46%,transparent)!important;
+}
+#mod-helper-settings-modal .kmh-auth-native-button[data-kmh-action="disconnect"]
+  :is(.btn-osu-big__content,.kmh-auth-button-label,.btn-osu-big__icon-inline,i),
+#mod-helper-settings-modal .kmh-auth-native-button[data-kmh-action="connect"]
+  :is(.btn-osu-big__content,.kmh-auth-button-label,.btn-osu-big__icon-inline,i){
+  color:inherit!important;background:transparent!important;text-shadow:none!important;
+}
+
+/* Remaining extension-owned dialogs: introduction and attachment previews. */
+:where(.kmh-tour-bubble,.kmh-preview-lightbox,.kmh-attachment-gallery-backdrop){
+  --kmh-ui-blue:#61c4f3;--kmh-ui-red:#f16c74;--kmh-ui-yellow:#ebc65b;
+}
+.kmh-tour-bubble .kmh-tour-nav :is(.kmh-tour-next,.kmh-tour-prev,.kmh-tour-skip),
+.kmh-preview-lightbox .kmh-preview-lightbox-close,
+.kmh-attachment-gallery-backdrop .kmh-attachment-gallery-close{
+  --kmh-tint:var(--kmh-ui-blue);
+  transition:background .14s,box-shadow .14s,color .14s;
+}
+.kmh-tour-bubble .kmh-tour-nav .kmh-tour-prev{--kmh-tint:#a8b9c4}
+.kmh-tour-bubble .kmh-tour-nav .kmh-tour-skip{--kmh-tint:var(--kmh-ui-yellow)}
+.kmh-preview-lightbox .kmh-preview-lightbox-close,
+.kmh-attachment-gallery-backdrop .kmh-attachment-gallery-close{--kmh-tint:var(--kmh-ui-red)}
+.kmh-tour-bubble .kmh-tour-nav button:is(:hover,:focus-visible):not(:disabled),
+.kmh-preview-lightbox .kmh-preview-lightbox-close:is(:hover,:focus-visible),
+.kmh-attachment-gallery-backdrop .kmh-attachment-gallery-close:is(:hover,:focus-visible){
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--kmh-tint) 50%,transparent),
+             0 0 12px color-mix(in srgb,var(--kmh-tint) 22%,transparent)!important;
+  outline:2px solid var(--kmh-tint);outline-offset:2px;
+}
+.kmh-tour-bubble .kmh-tour-nav button:disabled{opacity:.48;box-shadow:none!important}
+@media(prefers-reduced-motion:reduce){
+  .kmh-tour-bubble .kmh-tour-nav button,
+  .kmh-preview-lightbox .kmh-preview-lightbox-close,
+  .kmh-attachment-gallery-backdrop .kmh-attachment-gallery-close{transition:none!important}
+}

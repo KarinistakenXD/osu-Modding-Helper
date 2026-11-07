@@ -54,9 +54,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     const readers = {
         fetchDiscussions: () => self.OsuApiClient.fetchDiscussions(request.filters),
-        fetchDiscussionPosts: () => self.OsuApiClient.fetchDiscussionPosts(request.discussionId, request.cursor),
+        fetchDiscussionPosts: () => self.OsuApiClient.fetchDiscussionPosts(request.discussionId, request.cursor, request.limit, request.sort),
         fetchFavourites: () => self.OsuApiClient.fetchFavourites(request.page),
-        fetchPublicUser: () => self.OsuApiClient.fetchPublicUser(request.userId)
+        fetchPublicUser: () => self.OsuApiClient.fetchPublicUser(request.userId),
+        fetchKudosuHistory: () => self.OsuApiClient.fetchKudosuHistory(request.userId),
+        fetchNominatedSets: () => self.OsuApiClient.fetchNominatedSets(request.userId),
+        fetchBeatmapsetEvents: () => self.OsuApiClient.fetchBeatmapsetEvents(request.userId),
+        fetchBeatmapsetEventsForSet: () => self.OsuApiClient.fetchBeatmapsetEventsForSet(request.setId)
     };
     if (Object.prototype.hasOwnProperty.call(readers, request.action)) {
         Promise.resolve().then(readers[request.action]).then(data => sendResponse({ data })).catch(err => sendResponse({ error: err.message, status: err.status, retryAfter: err.retryAfter }));
