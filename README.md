@@ -1,136 +1,124 @@
 <div align="center">
   <img src="icons/icon-128.png" width="92" height="92" alt="osu! Modding Helper icon">
   <h1>osu! Modding Helper</h1>
-  <p>More convenient beatmap discussions, modding activity, uploads, metadata, and Ranking Criteria tools—directly on osu!web.</p>
+  <p>Extra tools for beatmap discussions and modding on osu!web.</p>
   <p>
-    <a href="https://github.com/KarinistakenXD/osu-Modding-Helper/releases">Download</a> ·
+    <a href="https://github.com/KarinistakenXD/osu-Modding-Helper/releases">Releases</a> ·
     <a href="#screenshots">Screenshots</a> ·
     <a href="#installation">Installation</a> ·
-    <a href="https://github.com/KarinistakenXD/osu-Modding-Helper/issues">Report an issue</a>
+    <a href="https://github.com/KarinistakenXD/osu-Modding-Helper/issues">Issues & suggestions</a>
   </p>
 </div>
 
 > [!NOTE]
-> This is an unofficial browser extension. It is not developed, maintained, or endorsed by the osu! team, Beatmap Nominators, or Nomination Assessment Team.
+> This is an unofficial extension, not a project of the osu! team, BN, or NAT.
 
-## Overview
+## About
 
-**osu! Modding Helper** adds lightweight tools to osu!web's beatmapset pages without replacing the native discussion and Review editors. You can inspect your modding history, check Ranking Criteria, preview linked attachments, and handle routine metadata and download tasks in fewer steps.
+I made **osu! Modding Helper** to make the small, repetitive parts of modding on osu!web easier. It adds shortcuts and useful information to beatmap pages, so you don't have to keep switching tabs just to check the Ranking Criteria, copy metadata, or look back through your discussions.
 
-| Area | What it offers |
-| --- | --- |
-| **Discussions** | Inline Markdown styling, clickable links and timestamps, attachment previews, and image uploads with posting protection. |
-| **Recent Discussions** | Search and filter your modposts, expand replies, and track new replies or resolution changes with local read markers. |
-| **Modding Activity** | Kudosu history with beatmap covers, public modding events, and nominated beatmapsets for eligible mapping-staff accounts. |
-| **Reviews** | A separate image uploader with thumbnails, generated Markdown, and copy/paste support. |
-| **Ranking Criteria** | A side panel for looking up relevant RC sections while browsing beatmaps. |
-| **Metadata & downloads** | Click-to-copy metadata, export tools, additional download sources, and osu!direct shortcuts. |
-| **Settings** | Optional osu! account connection, upload-provider settings, and feature toggles. |
+The extension works alongside osu!web's existing editors. Most page tools don't need an account connection; personal discussion history and activity do.
+
+## Features
+
+- **Discussion editor:** Formatting previews, clickable links and timestamps, attachment previews, and image uploads. Posting is blocked while an upload is still running.
+- **Recent Discussions:** Find your modposts, filter them by type or status, view replies, and mark updates as read or unread.
+- **Modding Activity:** Browse kudosu history, recent modding events, and (for supported usergroups) nominated beatmapsets.
+- **Review image uploads:** Upload images, preview them, and copy the Markdown into osu!web's Review editor.
+- **Ranking Criteria:** Keep relevant RC rules and guidelines open beside the beatmap you're checking.
+- **Metadata and downloads:** Copy Source, Genre/Language, or Tags; export metadata; and access additional download options, including osu!direct.
+- **Settings:** Choose which tools to enable, configure an image host, and optionally connect your osu! account.
 
 ## Screenshots
 
-Screenshots are from the v1.1.3 interface. Certain account-specific features depend on osu! authentication and usergroup membership.
+*Screenshots show the v1.1.3 interface.*
 
 ### Recent Discussions
 
-Find previous modposts, filter by discussion type or status, and expand replies. **Mark read** and **Mark unread** are local checkpoints; they do not change osu!web notifications.
+A place to find your previous modposts and catch up on replies without searching through individual beatmap pages. Read/unread markers are saved locally and don't affect osu!'s notifications.
 
-<img src="docs/screenshots/recent-discussions.png" width="900" alt="Recent Discussions workspace with profile header, filters, post cards and reply controls">
+<img src="docs/screenshots/recent-discussions.png" width="900" alt="Recent Discussions workspace">
 
 ### Modding Activity
 
-Kudosu history and public modding events are shown separately. Events include issue resolution/reopening and nomination-related activity when the API returns them. For recognized mapping-staff memberships, this area can also show nominated beatmapsets.
+Kudosu and modding events are kept in separate lists. The nomination section is available for supported mapping-staff usergroups.
 
 <details>
-  <summary><b>Kudosu history</b> — totals, recent entries, and beatmap artwork</summary>
-  <p><img src="docs/screenshots/kudosu-history.png" width="900" alt="Modding Activity displaying total kudosu earned and recent kudosu entries with beatmap covers"></p>
+  <summary><b>Kudosu history</b></summary>
+  <p><img src="docs/screenshots/kudosu-history.png" width="900" alt="Kudosu history with beatmap artwork"></p>
 </details>
 
 <details>
-  <summary><b>Recent events</b> — resolutions, nominations, and nomination resets</summary>
-  <p><img src="docs/screenshots/modding-events.png" width="900" alt="Modding Activity recent events with colored icons and beatmap covers"></p>
+  <summary><b>Recent events</b></summary>
+  <p><img src="docs/screenshots/modding-events.png" width="900" alt="Recent modding events"></p>
 </details>
 
-### Review image uploads
+### Review image uploader
 
-In **New Review**, expand **Image uploads** to upload files, see previews, and copy image Markdown. The uploader is separate from osu!web's rich-text Review editor; paste the copied text into Review yourself.
+Open **Image uploads** above the Review editor to upload images and copy their Markdown. You still paste the result into the Review yourself; the extension doesn't change how osu!web's Review editor works.
 
-<img src="docs/screenshots/review-uploader.png" width="800" alt="Expanded Review image-upload workspace and Markdown quick reference above the native Review editor">
+<img src="docs/screenshots/review-uploader.png" width="800" alt="Review image uploader and Markdown reference">
 
 ### Discussion editor and Ranking Criteria
 
-The normal discussion composer supports inline Markdown styling, link/timestamp interactions, and linked attachment previews. The RC panel stays available alongside the beatmap page.
+The normal discussion editor has formatting previews and linked attachment cards. You can also open the Ranking Criteria panel without leaving the beatmap page.
 
 <details>
-  <summary><b>Discussion editor</b> — formatting and attachment cards</summary>
-  <p><img src="docs/screenshots/discussion-editor.png" width="810" alt="osu!web discussion composer with Modding Helper formatting and attachment previews"></p>
+  <summary><b>Discussion editor</b></summary>
+  <p><img src="docs/screenshots/discussion-editor.png" width="810" alt="Discussion editor and attachment previews"></p>
 </details>
 
 <details>
-  <summary><b>Ranking Criteria panel</b> — difficulty-specific RC reference</summary>
-  <p><img src="docs/screenshots/ranking-criteria.png" width="390" alt="Ranking Criteria side panel showing mode, difficulty and guidelines"></p>
+  <summary><b>Ranking Criteria panel</b></summary>
+  <p><img src="docs/screenshots/ranking-criteria.png" width="390" alt="Ranking Criteria side panel"></p>
 </details>
 
-### Settings and account integration
+### Settings
 
-When connected, Settings shows the osu! profile's public avatar, cover, supporter hearts, and reported usergroups. Under **Integrations**, choose an upload provider and manage the optional osu! account connection.
+Choose the features you want and set up your upload service under **Integrations**. If you connect an osu! account, you'll also see its profile information in the extension.
 
 <details>
-  <summary><b>Account connection and Settings</b></summary>
-  <p><img src="docs/screenshots/settings-account.png" width="800" alt="Modding Helper Settings with connected osu! profile and account controls"></p>
+  <summary><b>Account settings</b></summary>
+  <p><img src="docs/screenshots/settings-account.png" width="800" alt="Settings and connected osu! account"></p>
 </details>
 
 <details>
-  <summary><b>Upload providers</b> — s-ul.eu, Catbox, ImgBB, and Litterbox</summary>
-  <p><img src="docs/screenshots/settings-uploads.png" width="800" alt="Upload provider settings including host selection and optional API credentials"></p>
+  <summary><b>Upload providers</b></summary>
+  <p><img src="docs/screenshots/settings-uploads.png" width="800" alt="Settings for s-ul.eu, Catbox, ImgBB and Litterbox"></p>
 </details>
 
 ## Installation
 
-The extension is currently distributed as a manual-install browser extension.
+The extension is available as a ZIP for manual installation.
 
-1. Download an extension ZIP from [Releases](https://github.com/KarinistakenXD/osu-Modding-Helper/releases), then extract it.
-2. In Chrome or a Chromium-based browser, open `chrome://extensions`.
-3. Enable **Developer mode** and select **Load unpacked**.
+1. Download a ZIP from [Releases](https://github.com/KarinistakenXD/osu-Modding-Helper/releases) and extract it.
+2. Open `chrome://extensions` in Chrome or another Chromium-based browser.
+3. Enable **Developer mode** and click **Load unpacked**.
 4. Select the extracted folder containing `manifest.json`.
-5. Open an [osu! beatmapset](https://osu.ppy.sh/beatmapsets) and refresh the page if it was already open.
+5. Open or refresh an osu! beatmapset page.
 
-If you installed an older copy separately, disable it to avoid duplicate extension controls. Chromium-based browsers are the primary target; other browsers may require different installation steps and may behave differently.
+If you have an older copy installed separately, disable it first to avoid duplicate controls. Chromium-based browsers are the main target; support elsewhere may vary.
 
-## Using the main features
+## A few things to know
 
-**Discussion uploads.** Use **+ Browse files**, paste an image, or drop a file on the supported upload area. Posting controls are temporarily disabled while an upload is processing. Once the upload completes, the attachment can be previewed and linked in the draft.
+**Discussion and Review uploads are different.** In normal discussions, uploaded image links are added to the draft. In Reviews, the extension gives you Markdown to copy and paste. It doesn't directly edit osu!web's Review content. Auto-copy is optional, and may replace what's currently on your clipboard.
 
-**Review uploads.** Expand **Image uploads**, choose or drop an image, then use **Copy Markdown** (or click its copyable source). Paste it into the native Review editor with `Ctrl+V` / `Cmd+V`. Optional auto-copy may overwrite the clipboard after an upload. Review formatting and block insertion remain under osu!web's own controls.
+**osu!direct** uses an `osu://` link to open the beatmapset in an installed osu! client. It may require osu!supporter and a compatible client.
 
-**Metadata.** Click the displayed **Source** value to copy it, **Genre / Language** to copy both, or **Tags** to copy the tag list. Available page metadata remains copyable without connecting an osu! account.
+**Connecting your osu! account is optional.** Personal history needs a connection, but the public page tools still work without it. OAuth token exchange uses a third-party Cloudflare Worker, **not an osu!-operated service**. You can review the connection details in **Settings → Integrations**. Never enter your osu! password into the extension.
 
-**Downloads.** The beatmapset download controls group **Download**, **osu!direct**, and **+**. osu!direct opens an `osu://` link using an installed osu! client; access may depend on your osu!supporter status and client support.
+**Uploads use third-party hosts.** s-ul.eu, Catbox, ImgBB and Litterbox have their own limits and availability. Uploaded files may be public, and Litterbox links expire. If a link is important for a mod, open it once before posting to make sure it works.
 
-**Recent Discussions.** Open the workspace to search loaded discussions, inspect replies, filter by type or status, and mark updates as read. Rechecking replies and resolution events may require an osu! account connection. Read markers are stored in this browser only.
-
-## Privacy, authentication, and limitations
-
-- **Account connection is optional.** Public page tools work without OAuth; personal history and account-specific features require a connection.
-- **OAuth uses a third-party service.** The extension's configured token exchange runs through a third-party Cloudflare Worker, **not an osu!-operated authentication service**. Review the provider information in **Settings → Integrations** before connecting. Do not enter your osu! password into extension dialogs.
-- **Uploads go to external hosts.** s-ul.eu, Catbox, ImgBB, and Litterbox have different credentials, limits, retention policies, and availability. Uploaded files may be public. Litterbox links are temporary; they are not suitable for permanent modding evidence.
-- **A successful upload response is not proof of reachability.** A returned link can still fail due to the host/CDN or network. Check the resulting URL before posting it.
-- **Recent Discussions read state is local.** It does not modify official osu! notifications or server-side read receipts.
-- **Modding history is partial.** Public API results and paginated histories are not a complete BN moderation log; the extension does not provide privileged nomination or moderation actions.
-- **Review compatibility is deliberately conservative.** The image uploader does not insert directly into the Slate editor or replace native formatting. Markdown pasted into Review may not be rendered as rich text while editing.
+**Activity history has limits.** Read markers only exist in your browser, and the API history isn't a complete record of staff actions. The extension doesn't provide moderation or nomination privileges.
 
 ## Troubleshooting
 
-| Problem | Try this |
-| --- | --- |
-| Extension controls do not appear | Check that the extension is enabled, refresh the beatmapset page, and disable duplicate installations. |
-| osu! account appears disconnected | Check **Settings → Integrations** and reconnect; a third-party authentication-service failure may also be involved. |
-| Upload does not finish | Check the configured provider, credentials, and file size. Retry only after the pending request has failed or timed out. |
-| Upload returns a link that does not load | Open the link directly and check the hosting provider's availability; do not assume a successful API response means the image is accessible. |
-| Review formatting behaves unexpectedly | Use osu!web's native Review formatting controls. The extension's Review uploader is for obtaining image links. |
+If the tools don't appear, check that the extension is enabled and refresh the beatmap page. If you see duplicate buttons, disable any older installations.
 
-For reproducible issues, open a [GitHub issue](https://github.com/KarinistakenXD/osu-Modding-Helper/issues) with your browser, extension version, reproduction steps, and any relevant console errors. Avoid sharing OAuth tokens or upload API keys.
+If uploads fail or get stuck, check the selected host, its credentials, and the file size. An upload can finish while the returned image link is still unavailable, so try opening the URL directly.
+
+For bugs or feature requests, [open an issue on GitHub](https://github.com/KarinistakenXD/osu-Modding-Helper/issues). Include the browser and extension version, what you did, and what happened. Screenshots or console errors help too—just don't post API keys or OAuth tokens.
 
 ## License
 
-Licensed under the [GNU Affero General Public License v3.0](LICENCE).
+[GNU Affero General Public License v3.0](LICENCE).
